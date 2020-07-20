@@ -4,6 +4,8 @@ import ee
 import geemap
 import math
 import shapely.geometry as sg
+import gdal
+import pandas
 
 ee.Initialize()
 
@@ -51,14 +53,33 @@ def get_aoi_name(asset_name):
     return os.path.split(asset_name)[1].replace('aoi_','')
 
 
-def pixelCount():
-    """pixel_count <- function(x){
-  info    <- gdalinfo(x,hist=T)
-  buckets <- unlist(str_split(info[grep("bucket",info)+1]," "))
-  buckets <- as.numeric(buckets[!(buckets == "")])
-  hist    <- data.frame(cbind(0:(length(buckets)-1),buckets))
-  hist    <- hist[hist[,2]>0,]
-}"""
+def pixelCount(raster):
+    """ give the results of the hist function from Gdalinfo. NaN and 0 are removed
+  
+    Args: 
+        raster(str): the pathname to the raster used to perform the histogramm
+    
+    Returns:
+        hist (): the histogram to be used
+    """
+    info = gdal.Info(raster, reportHistograms=True)
+    info = info.split(' ')
+    
+    index = info.index('buckets')-1 #find the buket keyword
+    
+    buckets_nb = int(list[index-1])
+    min_ = float(list[list.index('from', index)+1])
+    max_ = float(list[list.index('to', index)+1].replace(':\n',''))
+    
+    interval = (abs(min_) + abs(max_))/buckets_nb
+    
+    codes = [ min_+ i*interval for i in range(bucket_nb)]
+    values = info[info.index('', index)+1:-1] #remove the last '\n'
+    
+    d = { "code": codes, "pixels": values}
+    d = pd.DataFrame(data=d)
+    
+    return d
     
 def estimate():
     """estimate <- function(x,y){
