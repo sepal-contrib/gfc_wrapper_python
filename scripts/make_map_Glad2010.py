@@ -130,15 +130,13 @@ def make_map_Glad2010(assetID, threshold):
      
     os.system(' '.join(command))
      
-    # compress 
-    glad_final = pm.getGfcDir() + aoi_name + 'glad_check_' + threshold + '.tif'
-    
+    # compress     
     options = gdal.TranslateOptions(
         outputType = gdalconst.GDT_Byte,
         creationOptions = "COMPRESS=LZW",
     )
     
-    gdal.translate(glad_final, glad_pct, options)
+    gdal.translate(clip_map, glad_pct, options)
     
     
     return 1
