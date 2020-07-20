@@ -5,15 +5,15 @@ import gdal
 import osr
 
 
-def make_map_theshold(assetID, threshold):
+def make_map_theshold_clump(assetID, threshold):
     
     aoi_name = utils.get_aoi_name(assetId)
     
     #skip if outpu already exist 
-    ouput_file = pm.getGfcDir() + aoi_name + 'gfc_{}_map_clip_pct.tif'.format(threshold)
+    ouput_file = pm.getGfcDir() + aoi_name + 'gfc_{}_map_clip_pct_clumps.tif'.format(threshold)
     
     if os.path.isfile(ouput_file):
-        return 'gfc map already performed'
+        return 'gfc clump map already performed'
     
     
     # align glad with GFC 
@@ -62,7 +62,7 @@ def make_map_theshold(assetID, threshold):
     os.system(' '.join(command))
     
     #crop and reproject
-    gfc_clip = pm.getTmpDir() + aoi_name + 'gfc_map_clip.tif'
+    gfc_clip = pm.getTmpDir() + aoi_name + 'gfc_map_clip_clump.tif'
 
     options = gdal.WarpOptions(
         dstSRS = proj,
@@ -75,7 +75,7 @@ def make_map_theshold(assetID, threshold):
     ds = None
     
     #add pseudo colors 
-    gfc_pct = pm.getTmpDir() + aoi_name + '_gfc_map_clip_pct.tif'
+    gfc_pct = pm.getTmpDir() + aoi_name + '_gfc_map_clip_pct_clump.tif'
     command = [
         "(echo {})".format(pm.getUtilsDir()+'color_table_glad.txt'),
         '|',
@@ -95,4 +95,7 @@ def make_map_theshold(assetID, threshold):
     gdal.translate(ouput_file, gfc_pct, options)
     
     return 1
+
+
+
 
