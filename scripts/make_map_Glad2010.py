@@ -49,8 +49,31 @@ def make_map_Glad2010(assetID, threshold):
     ds = None
     
     # Combination FNF 2000
+    treecover_2000 = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[0] + '.tif'
+    fnf_2000 = pm.getTmpDir() + aoi_name + '_fnf2000.tif'
     calc = "(A>={0})*1+(A<{0})*2".format(threshold)
-    print(calc)
+    
+    command = [
+        'gdal_calc.py',
+        '-A', treecover_2000,
+        '--co', 'COMPRESS=LZW',
+        'outfile='+fnf_2000,
+        '--calc="{}"'.format(calc)
+    ]
+    
+    os.system(' '.join(command))
+    
+    # Combination FNF 2010
+    fnf_2010 = pm.getTmpDir() + aoi_name + '_fnf2010.tif'
+    command = [
+        'gdal_calc.py',
+        '-A', glad_aligned,
+        '--co', 'COMPRESS=LZW',
+        'outfile='+fnf_2010,
+        '--calc="{}"'.format(calc)
+    ]
+    
+    os.system(' '.join(command))
     
     #combine into national scale map
     calc = "(A==1)*(B==1)*((C==0)+(C>=11))*1+"   # Foret accord
@@ -62,9 +85,60 @@ def make_map_Glad2010(assetID, threshold):
     calc += "(A==2)*(B==2)*( D==1)*7+"           # Gains GLAD < Gains GFC
     calc += "(A==2)*(B==2)*( D==0)*8"            # Non Foret accord
     
+    glad_loss = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[1] + '.tif'
+    glad_gain = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[2] + '.tif'
+    glad_check = pm.getTmpDir() + aoi_name + '_glad_check.tif'
+    
+    command = [
+        'gdal_calc.py',
+        '-A', fnf_2000,
+        '-B', fnf_2010,
+        '-C', glad_loss,
+        '-D', glad_gain,
+        '--co', 'COMPRESS=LZW',
+        '--overwrite',
+        '--outfile={}'.format(glad_check),
+        '--calc="{}"'.format(calc)
+    ]
+    
+    os.system(' '.join(command))   
     
     
+    #crop to country boundaries and reproject in EA projections 
+    
+    glad_prj = pm.getTmpDir() + aoi_name + 'glad_check.tif'
+
+    options = gdal.WarpOptions(
+        dstSRS = proj,
+        outputType = gdalconst.GDT_Byte,
+        creationOptions = "COMPRESS=LZW", 
+        cutlineDSName = aoi_shp
+    )
+    
+    ds = gdal.Warp(glad_prj, glad_check, options=options)
+    ds = None
+    
+    # add pseudocolor table to results 
+    glad_pct = pm.getTmpDir() + aoi_name + '_glad_check_pct.tif'
+    command = [
+        "(echo {})".format(pm.getUtilsDir()+'color_table_glad.txt'),
+        '|',
+        'oft-addpct.py',
+        glad_check,
+        glad_pct
+    ]
      
+    os.system(' '.join(command))
+     
+    # compress 
+    glad_final = pm.getGfcDir() + aoi_name + 'glad_check_' + threshold + '.tif'
+    
+    options = gdal.TranslateOptions(
+        outputType = gdalconst.GDT_Byte,
+        creationOptions = "COMPRESS=LZW",
+    )
+    
+    gdal.translate(glad_final, glad_pct, options)
     
     
-    return 'toto'
+    return 1
