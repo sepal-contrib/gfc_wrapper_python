@@ -117,5 +117,22 @@ def nombre():
       (df$code == 40 | (df$code > 0 & df$code < 30))
     ,]
   )}"""
+  
+def make_grid(points, spacing):
+
+    xmin,ymin,xmax,ymax = points.total_bounds
+
+    cols = list(range(int(np.floor(xmin)), int(np.ceil(xmax)), spacing))
+    rows = list(range(int(np.floor(ymin)), int(np.ceil(ymax)), spacing))
+    rows.reverse()
+
+    polygons = []
+    for x in cols:
+        for y in rows:
+            polygons.append( Polygon([(x,y), (x+wide, y), (x+wide, y-length), (x, y-length)]) )
+
+    grid = gpd.GeoDataFrame({'geometry':polygons})
+    
+    return grid
 
 
