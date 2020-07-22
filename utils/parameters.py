@@ -11,8 +11,12 @@ def create_folder(pathname):
 ########                        folders                 ########
 ################################################################
 
+def getResultDir():
+    pathname = os.path.join(os.path.expanduser('~'), 'gfc_wrapper_results') + '/'
+    return create_folder(pathname)
+
 def getDwnDir():
-    pathname = os.path.join(os.path.expanduser('~'), 'downloads/gfc') + '/'
+    pathname = os.path.join(getResultDir(), 'downloads') + '/'
     return create_folder(pathname) 
 
 def getRootDir():
