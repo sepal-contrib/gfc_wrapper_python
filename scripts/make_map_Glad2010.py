@@ -1,16 +1,19 @@
+import sys
+sys.path.append("..") # Adds higher directory to python modules path
 from utils import parameters as pm
 from utils import utils
 import os
 import gdal
 import osr
+from osgeo import gdalconst
 
 def make_map_Glad2010(assetID, threshold):
     
     aoi_name = utils.get_aoi_name(assetID)
+    aoi_shp = pm.getDwnDir() + '{}.shp'.format(aoi_name)
     
     # skip if process already finished 
-    clip_map = pm.getGfcDir() + aoi_name + "_" + str(threshold) + '_map_clip.tif'
-    print(clip_map)
+    clip_map = pm.getGfcDir() + aoi_name +'_glad_check.tif'.format(aoi_name, str(threshold))
     
     if os.path.isfile(clip_map): 
         return 'Glad 2010 map already performed'
@@ -18,6 +21,7 @@ def make_map_Glad2010(assetID, threshold):
     # align glad with GFC 
     mask = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[3] + '.tif'
     
+    #check if mask exists
     if not os.path.isfile(mask): 
         return 'No dataframe gfc map'
     
@@ -30,9 +34,10 @@ def make_map_Glad2010(assetID, threshold):
     
     # align GFC tree cover with segments 
     glad_raw = pm.getDwnDir() + aoi_name + '_treecover2010.tif'
-    glad_aligned = pm.getDwnDir() + aoi_name + '_treecover2010_aligned.tif'
+    glad_aligned = pm.getGfcDir() + aoi_name + '_treecover2010_aligned.tif'
     
-    if not os.path.isfile(mask): 
+    #verify that the map is available
+    if not os.path.isfile(glad_raw): 
         return 'No treecover file'
     
     options = gdal.WarpOptions(
@@ -53,11 +58,13 @@ def make_map_Glad2010(assetID, threshold):
     fnf_2000 = pm.getTmpDir() + aoi_name + '_fnf2000.tif'
     calc = "(A>={0})*1+(A<{0})*2".format(threshold)
     
+    #print(calc)
+    
     command = [
         'gdal_calc.py',
         '-A', treecover_2000,
-        '--co', 'COMPRESS=LZW',
-        'outfile='+fnf_2000,
+        '--co="{}"'.format('COMPRESS=LZW'),
+        '--outfile={}'.format(fnf_2000),
         '--calc="{}"'.format(calc)
     ]
     
@@ -68,8 +75,8 @@ def make_map_Glad2010(assetID, threshold):
     command = [
         'gdal_calc.py',
         '-A', glad_aligned,
-        '--co', 'COMPRESS=LZW',
-        'outfile='+fnf_2010,
+        '--co="{}"'.format('COMPRESS=LZW'),
+        '--outfile={}'.format(fnf_2010),
         '--calc="{}"'.format(calc)
     ]
     
@@ -95,39 +102,40 @@ def make_map_Glad2010(assetID, threshold):
         '-B', fnf_2010,
         '-C', glad_loss,
         '-D', glad_gain,
-        '--co', 'COMPRESS=LZW',
+        '--co="{}"'.format('COMPRESS=LZW'),
         '--overwrite',
         '--outfile={}'.format(glad_check),
         '--calc="{}"'.format(calc)
     ]
     
-    os.system(' '.join(command))   
+    os.system(' '.join(command)) 
     
     
     #crop to country boundaries and reproject in EA projections 
-    
-    glad_prj = pm.getTmpDir() + aoi_name + 'glad_check.tif'
+    glad_clip = pm.getTmpDir() + aoi_name + 'glad_check_clip_prj.tif'
 
     options = gdal.WarpOptions(
-        dstSRS = proj,
-        outputType = gdalconst.GDT_Byte,
+        dstSRS          = proj,
+        outputType      = gdalconst.GDT_Byte,
         creationOptions = "COMPRESS=LZW", 
-        cutlineDSName = aoi_shp
+        cutlineDSName   = aoi_shp,
+        cropToCutline   = True
     )
     
-    ds = gdal.Warp(glad_prj, glad_check, options=options)
+    ds = gdal.Warp(glad_clip, glad_check, options=options)
     ds = None
     
-    # add pseudocolor table to results 
-    glad_pct = pm.getTmpDir() + aoi_name + '_glad_check_pct.tif'
+    # add pseudocolor table to results
+    color_table = pm.getColorTable()
+    glad_pct = pm.getTmpDir() + '{}_glad_check_clip_prj_pct.tif'.format(aoi_name)
     command = [
-        "(echo {})".format(pm.getUtilsDir()+'color_table_glad.txt'),
+        "(echo {})".format(color_table),
         '|',
         'oft-addpct.py',
-        glad_check,
+        glad_clip,
         glad_pct
     ]
-     
+
     os.system(' '.join(command))
      
     # compress     
@@ -136,7 +144,7 @@ def make_map_Glad2010(assetID, threshold):
         creationOptions = "COMPRESS=LZW",
     )
     
-    gdal.translate(clip_map, glad_pct, options)
+    gdal.Translate(clip_map, glad_pct, options=options)
     
     
     return 1

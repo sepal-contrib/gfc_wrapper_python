@@ -1,4 +1,9 @@
 import os
+import sys
+sys.path.append("..") 
+from utils import utils
+import pandas as pd 
+import matplotlib as mpl
 
 
 def create_folder(pathname):
@@ -32,11 +37,11 @@ def getDataDir():
     return create_folder(pathname)
 
 def getTmpDir():
-    pathname = os.path.join(getRootDir(), 'tmp') + '/'
+    pathname = os.path.join(getResultDir(), 'tmp') + '/'
     return create_folder(pathname)
 
 def getGfcDir():
-    pathname = os.path.join(getRootDir(), 'gfc') + '/'
+    pathname = os.path.join(getResultDir(), 'gfc') + '/'
     return create_folder(pathname)
 
 def getAoiDir():
@@ -88,20 +93,54 @@ def getTypes():
 ##########################################################
 
 def getMyClasses():
-    return [0, getMaxYear(), 30, 40, 50, 51]
+    
+    years = [i for i in range (1, getMaxYear()+1)]
+    pos = 1
+    my_classes = [0,30,40,50,51]
+    my_classes[pos:pos] = years
+
+    return my_classes
 
 def getMyLabel():
-    return [
-        "no data",
-        "loss_{}".format(2000+getMaxYear()),
-        "non forest",
-        "forest",
-        "gains",
-        "gains+loss"
-    ]
+    
+    years = ['loss_{}'.format(str(2000+i)) for i in range (1, getMaxYear()+1)]
+    labels = ["no data","non forest","forest","gains","gain+loss"]
+    pos = 1
+    labels[pos:pos] = years
+    
+    return labels
 
 def getCodes():
     return {getMyClasses()[index]: value for index, value in enumerate(getMyLabel()) }
+
+def getColorTable():
+    
+    pathname = getTmpDir() + 'color_table.txt'
+    
+    if not os.path.isfile(pathname):
+        
+        length = len(getMyClasses())
+        color_r = {}
+        color_g = {}
+        color_b = {}
+        
+        color_r[0], color_g[0], color_b[0] = mpl.colors.to_rgb('black') #no data
+        for i in range(1, getMaxYear()+1):
+            color_r[i], color_g[i], color_b[i] = utils.colorFader(i)
+        color_r[30], color_g[30], color_b[30] = mpl.colors.to_rgb('lightgrey') #non forest
+        color_r[40], color_g[40], color_b[40] = mpl.colors.to_rgb('darkgreen') #forest
+        color_r[50], color_g[50], color_b[50] = mpl.colors.to_rgb('lightgreen') #gains
+        color_r[51], color_g[51], color_b[51] = mpl.colors.to_rgb('purple') #gain + loss
+        
+        color_r = [int(round(color_r[idx]*255)) for idx in color_r.keys()]
+        color_g = [int(round(color_g[idx]*255)) for idx in color_g.keys()]
+        color_b = [int(round(color_b[idx]*255)) for idx in color_b.keys()]
+        
+        color_table = pd.DataFrame({'classes':getMyClasses(), 'red': color_r, 'green': color_g, 'blue': color_b})
+        
+        color_table.to_csv(pathname, header=False, index=False, sep=' ')
+    
+    return pathname
 
 def getPalette():
     return [
