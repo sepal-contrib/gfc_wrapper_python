@@ -78,7 +78,7 @@ def pixelCount(raster):
     #min_ = float(info[info.index('from', index)+1])
     #max_ = float(info[info.index('to', index)+1].replace(':\n',''))
     
-    #hadr code that the bucket is on pixel value coded on 256 bytes
+    #hard code that the bucket is on pixel value coded on 256 bytes
     buckets_nb = 256
     min_ = 0
     max_ = 256
