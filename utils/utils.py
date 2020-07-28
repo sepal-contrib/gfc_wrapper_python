@@ -12,6 +12,7 @@ import numpy as np
 import sys
 sys.path.append("..") # Adds higher directory to python modules path
 from utils import parameters as pm
+import pandas as pd
 
 ee.Initialize()
 
@@ -71,16 +72,23 @@ def pixelCount(raster):
     info = gdal.Info(raster, reportHistograms=True)
     info = info.split(' ')
     
-    index = info.index('buckets')-1 #find the buket keyword
+    index = info.index('buckets') #find the buket keyword
     
-    buckets_nb = int(list[index-1])
-    min_ = float(list[list.index('from', index)+1])
-    max_ = float(list[list.index('to', index)+1].replace(':\n',''))
+    #buckets_nb = int(info[index-1])
+    #min_ = float(info[info.index('from', index)+1])
+    #max_ = float(info[info.index('to', index)+1].replace(':\n',''))
+    
+    #hadr code that the bucket is on pixel value coded on 256 bytes
+    buckets_nb = 256
+    min_ = 0
+    max_ = 256
     
     interval = (abs(min_) + abs(max_))/buckets_nb
     
-    codes = [ min_+ i*interval for i in range(bucket_nb)]
-    values = info[info.index('', index)+1:-1] #remove the last '\n'
+    codes = [ min_+ i*interval for i in range(buckets_nb)]
+    
+    values = info[info.index('', index)+1:info.index('\n', index)]
+    values = [int(i) for i in values]
     
     d = { "code": codes, "pixels": values}
     d = pd.DataFrame(data=d)

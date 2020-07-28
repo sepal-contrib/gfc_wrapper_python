@@ -94,6 +94,11 @@ def download_merge(aoiId, pathname, result_folder, filename):
         filename (str): the name of the created tile
     """
     
+    merged_map = result_folder + filename + '.tif'
+    
+    if os.path.isfile(merged_map): 
+        return merged_map
+    
     tiles = []
     #create the list of tiles 
     for lng in range(-180, 180, 1):
@@ -146,7 +151,6 @@ def download_merge(aoiId, pathname, result_folder, filename):
     output = build_vrt(tiles_name, merged_vrt, bb)
     
     #convert into .tif file
-    merged_map = result_folder + filename + '.tif'
     output = translate(merged_vrt, merged_map, bb)
     
     #detruire les fichier tmp

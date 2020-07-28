@@ -49,7 +49,7 @@ def getAoiDir():
     return create_folder(pathname)
 
 def getStatDir():
-    pathname = os.path.join(getRootDir(), 'stat') + '/'
+    pathname = os.path.join(getResultDir(), 'stat') + '/'
     return create_folder(pathname)
 
 def getMspaDir():
@@ -140,6 +140,40 @@ def getColorTable():
         
         color_table.to_csv(pathname, header=False, index=False, sep=' ')
     
+    return pathname
+
+def getColorTableGlad():
+    
+    pathname = getTmpDir() + 'color_table_glad.txt'
+    
+    if not os.path.isfile(pathname):
+    
+        classes = [i for i in range(0,9)]
+        
+        length = len(classes)
+        color_r = {}
+        color_g = {}
+        color_b = {}
+        
+        color_r[0], color_g[0], color_b[0] = mpl.colors.to_rgb('black') # no data
+        color_r[1], color_g[1], color_b[1] = mpl.colors.to_rgb('green') # Foret accord
+        color_r[2], color_g[2], color_b[2] = mpl.colors.to_rgb('red') # Pertes GLAD < Pertes GFC
+        color_r[3], color_g[3], color_b[3] = mpl.colors.to_rgb('yellow') # Pertes agree
+        color_r[4], color_g[4], color_b[4] = mpl.colors.to_rgb('purple') # Pertes GLAD > Pertes GFC
+        color_r[5], color_g[5], color_b[5] = mpl.colors.to_rgb('blue') # Gains accord
+        color_r[6], color_g[6], color_b[6] = mpl.colors.to_rgb('lightblue') # Gains GLAD > Gains GFC
+        color_r[7], color_g[7], color_b[7] = mpl.colors.to_rgb('darkblue') # Gains GLAD < Gains GFC
+        color_r[8], color_g[8], color_b[8] = mpl.colors.to_rgb('grey') # Non Foret accord
+        
+        #transform the dicts into lists
+        color_r = [int(round(color_r[idx]*255)) for idx in color_r.keys()]
+        color_g = [int(round(color_g[idx]*255)) for idx in color_g.keys()]
+        color_b = [int(round(color_b[idx]*255)) for idx in color_b.keys()]
+        
+        color_table = pd.DataFrame({'classes':classes, 'red': color_r, 'green': color_g, 'blue': color_b})
+        
+        color_table.to_csv(pathname, header=False, index=False, sep=' ')
+        
     return pathname
 
 def getPalette():

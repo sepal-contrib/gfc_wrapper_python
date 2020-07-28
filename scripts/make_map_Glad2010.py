@@ -126,7 +126,7 @@ def make_map_Glad2010(assetID, threshold):
     ds = None
     
     # add pseudocolor table to results
-    color_table = pm.getColorTable()
+    color_table = pm.getColorTableGlad()
     glad_pct = pm.getTmpDir() + '{}_glad_check_clip_prj_pct.tif'.format(aoi_name)
     command = [
         "(echo {})".format(color_table),

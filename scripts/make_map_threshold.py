@@ -6,7 +6,7 @@ import osr
 from osgeo import gdalconst
 
 
-def make_map_theshold(assetId, threshold):
+def make_map_threshold(assetId, threshold):
     
     aoi_name = utils.get_aoi_name(assetId)
     aoi_shp = pm.getDwnDir() + '{}.shp'.format(aoi_name)
@@ -38,14 +38,13 @@ def make_map_theshold(assetId, threshold):
     gfc_datamask = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[3] + '.tif'
     gfc_tmp_map = pm.getTmpDir() + aoi_name + '_{}_gfc_map.tif'.format(threshold)
     
-    calc = "(A<={})*((C==1)*50 + (C==0)*30 +".format(threshold) #Non forest 
-    calc += "(A>{})*((C==1)*(".format(threshold)
-    calc += "(B>0)*51 +"                                        #gain + loss 
-    calc += "(B==0)*50"                                         #gain 
-    calc += ") + (C==0) * ("
-    calc += "(B>0)*B +"                                         #loss
-    calc += "(B==0)*40"                                         #stable forest 
-    calc +="))"
+    calc = "(A<={0})*((C==1)*50 + (C==0)*30) + " #Non forest 
+    calc += "(A>{0})*(C==1)*(B>0)*51 + "         #gain + loss 
+    calc += "(A>{0})*(C==1)*(B==0)*50 + "        #gain                                             
+    calc += "(A>{0})*(C==0)*(B>0)*B + "          #loss
+    calc += "(A>{0})*(C==0)*(B==0)*40"           #stable forest  
+    
+    calc = calc.format(threshold)
 
     command =[
         'gdal_calc.py',
@@ -56,7 +55,7 @@ def make_map_theshold(assetId, threshold):
         '--co="{}"'.format('COMPRESS=LZW'),
         '--outfile={}'.format(gfc_tmp_map),
         '--calc="{}"'.format(calc)
-    ]
+    ] 
     
     os.system(' '.join(command))
     
