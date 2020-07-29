@@ -11,7 +11,7 @@ def make_map_threshold(assetId, threshold):
     aoi_name = utils.get_aoi_name(assetId)
     aoi_shp = pm.getDwnDir() + '{}.shp'.format(aoi_name)
     
-    #skip if outpu already exist 
+    #skip if output already exist 
     clip_map = pm.getGfcDir() + aoi_name + '_{}_gfc_map.tif'.format(threshold)
     
     if os.path.isfile(clip_map):

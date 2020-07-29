@@ -78,7 +78,7 @@ def pixelCount(raster):
     #min_ = float(info[info.index('from', index)+1])
     #max_ = float(info[info.index('to', index)+1].replace(':\n',''))
     
-    #hard code that the bucket is on pixel value coded on 256 bytes
+    #hadr code that the bucket is on pixel value coded on 256 bytes
     buckets_nb = 256
     min_ = 0
     max_ = 256
@@ -162,5 +162,9 @@ def colorFader(v=0):
     c2=np.array(mpl.colors.to_rgb(c2))
     
     return mpl.colors.to_rgb((1-mix)*c1 + mix*c2)
+
+def toHectar(x, res):
+    """convert a pixel number into a surface in hectar using the provided resolution (res in meters)"""
+    return x*res*res/10000
 
 

@@ -186,3 +186,20 @@ def getPalette():
         'black', #ndat
         'purple' #gnls
     ]
+
+def getZonalLabels():
+    
+    legend = [
+        'zone_id',
+        'total',
+        'no_data',
+        'non_forest',
+        'forest',
+        'gain',
+        'gain_loss'
+    ]
+
+    years = [ 'loss_{}'.format(str(i)) for i in range(1, getMaxYear()+1)]
+    legend[3:3] = years
+    
+    return legend

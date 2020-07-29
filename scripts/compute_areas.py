@@ -32,10 +32,10 @@ def compute_areas(assetId, threshold):
     
     #the prjection is not equal-area. Approximation of the pixel surface is done with the followings : 1° = 111 km
     
-    resx = resx * 111321
+    resx_proj = resx * 111321
     
     #convert to hectars
-    hist['area'] = hist['pixels']*resx*resx/10000
+    hist['area'] = utils.toHectar(hist['pixels'], resx_proj)
     
     #checks
     #treecover_area = hist.loc[(hist['code'] == 40) | ((hist['code'] > 0) & (hist['code'] < 30)), ['area']].sum()

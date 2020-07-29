@@ -13,7 +13,7 @@ def make_map_Glad2010(assetID, threshold):
     aoi_shp = pm.getDwnDir() + '{}.shp'.format(aoi_name)
     
     # skip if process already finished 
-    clip_map = pm.getGfcDir() + aoi_name +'_glad_check.tif'.format(aoi_name, str(threshold))
+    clip_map = pm.getGfcDir() + aoi_name +'_glad_check.tif'
     
     if os.path.isfile(clip_map): 
         return 'Glad 2010 map already performed'
