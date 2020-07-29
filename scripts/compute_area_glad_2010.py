@@ -2,41 +2,42 @@ from utils import parameters as pm
 from utils import utils
 import os
 import pandas as pd
+import gdal 
+from osgeo import gdalconst, osr
 
-def compute_area_glad_2010(assetId, thershold):
+def compute_area_glad_2010(assetId, threshold):
     
     aoi_name = utils.get_aoi_name(assetId)
     
-    hist_file = pm.getStatDir() + aoi_name + "_stats_{}.csv".format(threshold)
+    hist_file = pm.getStatDir() + aoi_name + "_glad_stats_{}.csv".format(threshold)
     
-    map_raster = pm.getGfcDir() + aoi_name + 'glad_check_{}'.format(threshold)
+    map_raster = pm.getGfcDir() + aoi_name + '_glad_check.tif'.format(threshold)
     
     #skip if output already exist 
     if os.path.isfile(hist_file):
-        return 'stats already computed'
+        print('stats already computed')
+        return hist_file
     
     
     src = gdal.Open(map_raster)
     proj = osr.SpatialReference(wkt=src.GetProjection())
-    bb = utils.get_bounding_box(assetID)
-    res = {}
-    _, res['x'], _, _, _, res['y']  = src.GetGeoTransform()
+    bb = utils.get_bounding_box(assetId)
+    _, resx, _, _, _, resy = src.GetGeoTransform()
     src = None
     
-    hist = utils.pixel_count(map_raster)
-    hist['area'] = hist['pixels']*res['x']*res['x']/10000
-    
-
-
-
-
-    # add the legend (don't know where it come from)
-    # df <- merge(hist,legend,by.x="code",by.y="code",all.x=T)
-    
-    #remove empty codes lines 
-    #df.loc[(df!=0).any(axis=1)]
-    #df[df.values.sum(axis=1) != 0] super fast
-    df = df= df[df['code'] != 0]
+    hist = utils.pixelCount(map_raster)
+              
+    resx_proj = resx * 111321
+    hist['area'] = utils.toHectar(hist['pixels'], resx_proj)
+            
+    #remove the 255 values         
+    hist = hist[hist['code'] != 255.]
+              
+    legend = pm.getGladLabels()
+    df = pd.merge(hist, pm.getGladLabels(), on='code')
+              
+    #remove no_data 
+    df = df[df['code'] != 0]
     
     #add %
     total_area = df['area'].sum()
@@ -44,6 +45,7 @@ def compute_area_glad_2010(assetId, thershold):
 
     df.columns = [
         "code",
+        "pixels",
         "fnf_gfc_2000",
         "chg_gfc",
         "agree",
@@ -51,13 +53,9 @@ def compute_area_glad_2010(assetId, thershold):
         "area",
         "percent"
     ]
-
-    #debug
-    #tapply(df$percent,df$agree,sum)
     
-    filename = 'stt_dir,"stats_",countrycode,"_",threshold,".csv"'
-    df.to_csv(filename)
+    df.to_csv(hist_file, index=False)
     
-    return 1
+    return hist_file
 
 

@@ -14,9 +14,9 @@ def compute_areas_by_zone(assetId, threshold):
     map_raster = pm.getGfcDir() + aoi_name + '_{}_gfc_map.tif'.format(threshold)
     
     #skip if output already exist 
-    #if os.path.isfile(hist_output):
-    #    print('stats already computed')
-    #    return hist_file
+    if os.path.isfile(hist_output):
+        print('stats already computed')
+        return hist_output
     
     if not os.path.isfile(map_raster): 
         print('No gfc map')
@@ -172,7 +172,7 @@ def compute_areas_by_zone(assetId, threshold):
     
     df.to_csv(hist_output, index=False)
     
-    return 1
+    return hist_output
 
 
 

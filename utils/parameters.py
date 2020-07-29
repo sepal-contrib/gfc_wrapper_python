@@ -203,3 +203,21 @@ def getZonalLabels():
     legend[3:3] = years
     
     return legend
+
+def getGladLabels():
+    
+    my_class = [i for i in range(8+1)]
+    fnf_gfc_2000 = ['nodata'] + ['forest']*4 + ['non_forest']*4
+    fnf_glad_2010 = ['nodata'] + ['forest']*2 + ['non_forest']*2 + ['forest']*2 + ['non_forest']*2
+    chg_gfc = ['nodata','Stable','Loss','Loss','Stable','Gain','Stable','Gain','Stable']
+    agree = ['nodata','Yes','No','Yes','No','Yes','No','No','Yes']
+    
+    df = pd.DataFrame({
+        'code': my_class,
+        'fnf_gfc_2000': fnf_gfc_2000,
+        'fnf_glad_2010': fnf_glad_2010,
+        'chg_gfc': chg_gfc,
+        'agree': agree
+    })
+    
+    return df
