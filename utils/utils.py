@@ -95,42 +95,46 @@ def pixelCount(raster):
     
     return d
     
-def estimate():
-    """estimate <- function(x,y){
-  nrow(df[
-    df$lon_fact%%x == 0 & 
-      df$lat_fact%%x == 0 &
-      df$code == y
-    ,])/
-    nrow(df[
-      df$lon_fact%%x == 0 & 
-        df$lat_fact%%x == 0 &
-        (df$code == 40 | (df$code > 0 & df$code < 30))
-      ,])
-}"""
+def estimate(class_, year, df):
+    year_loss = df[
+        (df['lon_fact']%class_ == 0)
+        & (df['lat_fact']%class_ == 0)
+        & (df['code'] == year)
+    ].shape[0] #nbrow
     
-def allaEstimate():
-       """all_estimate <- function(x){
-  nrow(df[
-    df$lon_fact%%x == 0 & 
-      df$lat_fact%%x == 0  & 
-      (df$code > 0 & df$code < 30)
-    ,])/
-    nrow(df[
-      df$lon_fact%%x == 0 & 
-        df$lat_fact%%x == 0 &
-        (df$code == 40 | (df$code > 0 & df$code < 30))
-      ,])
-}"""
+    forest = df[
+        (df['lon_fact']%class_ == 0)
+        & (df['lat_fact']%class_ == 0)
+        & ((df['code'] == 40) | ((df['code'] > 0) & (df['code'] < 30)))
+    ].shape[0] #nbrow
+    
+    return year_loss/forest
+    
+def allEstimate(class_, df):
+    
+    loss = df[
+        (df['lon_fact'] == 0)
+        & (df['lat_fact'] == 0)
+        & ((df['code'] > 0) & (df['code'] < 30))
+    ].shape[0] #nbrow
+    
+    forest = df[
+        (df['lon_fact']%class_ == 0)
+        & (df['lat_fact']%class_ == 0)
+        & ((df['code'] == 40) | ((df['code'] > 0) & (df['code'] < 30)))
+    ].shape[0] #nbrow
+    
+    return loss/forest
         
-def nombre():
-    """nombre <- function(x){
-  nrow(df[
-    df$lon_fact%%x == 0 & 
-      df$lat_fact%%x == 0 &
-      (df$code == 40 | (df$code > 0 & df$code < 30))
-    ,]
-  )}"""
+def nombre(class_, df):
+    
+    forest = df[
+        (df['lon_fact']%class_ == 0)
+        & (df['lat_fact']%class_ == 0)
+        & ((df['code'] == 40) | ((df['code'] > 0) & (df['code'] < 30)))
+    ].shape[0] #nbrow
+    
+    return forest
   
 def make_grid(points, spacing):
 

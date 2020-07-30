@@ -1,6 +1,92 @@
 import geopandas as gpd
+import pandas as pd
 
 def make_grid():
+    
+    #create the basegrid 
+    
+    ##################
+    ### TODO        ##
+    ##################
+    gdf #as geo data frame
+    
+    #extract the data from the gdf
+    df
+    
+    #create a dataset containing all levels of longitude
+    lng = np.unique(df[['xcoord']].to_numpy())
+    lon_fact = pd.DataFrame({
+        'xccord': lng, 
+        'lon_fact': [i for i in range(1, len(lng)+1)]
+    }) 
+    
+    #create a dataset containing all levels of latitude
+    lat = np.unique(df[['ycoord']].to_numpy())
+    lat_fact = pd.DataFrame({
+        'ycoord': lat, 
+        'lat_fact': [i for i in range(1, len(lat)+1)]
+    })
+    
+    #add these columns to gdf 
+    pd.merge(df, lon_fact, on='xcoord')
+    pd.merge(df, lat_fact, on='ycoord')
+    
+    df.columns = [
+        'latitude',
+        'longitude',
+        'code',
+        'lon_fact',
+        'lat_fact'
+    ]
+    
+    
+    #esrimate the treecover for each year for each intensity level
+    years = [i for i in range(1, pm.getMaxYear()+1)]
+    classes = pm.getClasses()
+    tcover = treecover_area.values
+    out = [[utils.estimate(class_, year, df)*tcover for year in years] for class_ in classes]
+    out = pd.DataFrame(out)
+    
+    #apply function estimate to cumulated years for all sub-sampling
+    out['all_years'] = pd.DataFrame([utils.allEstimate(class_, df) for class_ in classes])
+    
+    # Add a column with number of samples corresponding to each level
+    out['intensity'] = pd.DataFrame([utils.nombre(class_, df) for class_ in classes])
+    
+    #add column names 
+    labels = ['year_{}'.format(str(2000+i)) for i in years] + ['total'] + ['intensity']
+    
+    out.columns = labels
+    
+    # Create, to the same format, a line corresponding to target areas of loss
+    # The last number corresponds to column "intensity", with the number of pixels used
+    
+    
+    #########################
+    ## TODO qui est hist ? ##
+    #########################
+    
+    resx_proj = resx * 111321
+    
+    loss_year = hist[(hist['code'] > 0) & (hist['code'] < 30)]
+    loss_year = list(utils.toHectar(loss_year['pixels'], resx_proj).values)
+    loss_area = list(lossarea.values)
+    total = hist[
+        (hist['code'] == 40)
+        | ((hist['code'] > 0) & (hist['code'] < 30))
+    ]
+    total = list(total['pixel'].sum().values)
+    final_line = loss_year + loss_area + total
+    
+    out.append(final_line)
+    
+    return out
+    
+    
+    
+    
+            
+            
     
     
 

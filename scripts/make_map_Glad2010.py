@@ -16,7 +16,8 @@ def make_map_Glad2010(assetID, threshold):
     clip_map = pm.getGfcDir() + aoi_name +'_glad_check.tif'
     
     if os.path.isfile(clip_map): 
-        return 'Glad 2010 map already performed'
+        print('Glad 2010 map already performed')
+        return clip_map
     
     # align glad with GFC 
     mask = pm.getDwnDir() + aoi_name + '_' + pm.getTypes()[3] + '.tif'
