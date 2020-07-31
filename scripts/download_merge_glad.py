@@ -10,6 +10,7 @@ import time
 import sys
 sys.path.append("..") # Adds higher directory to python modules path
 from utils import utils
+from utils import parameters as pm
 
 
 ee.Initialize()
@@ -78,7 +79,7 @@ def translate(vrt_tile, tif_tile, bb):
     #launch in os.system because it doesn't work in subprocess
     return os.system(" ".join(command))
 
-def download_merge(aoiId, pathname, result_folder, filename):
+def download_merge(aoiId, pathname, filename):
     """
        retreive data that are tiled and refereced by there NW corner
        
@@ -88,6 +89,7 @@ def download_merge(aoiId, pathname, result_folder, filename):
         result_folder (str): the result foder where to store everything
         filename (str): the name of the created tile
     """
+    result_folder = pm.getDwnDir()
     
     merged_map = result_folder + filename + '.tif'
     

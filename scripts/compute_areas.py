@@ -38,11 +38,17 @@ def compute_areas(assetId, threshold):
     hist['area'] = utils.toHectar(hist['pixels'], resx_proj)
     
     #checks
-    treecover_area = hist.loc[(hist['code'] == 40) | ((hist['code'] > 0) & (hist['code'] < 30)), ['area']].sum()
-    loss_area = hist.loc[(hist['code'] > 0) & (hist['code'] < 30), ['area']].sum()
+    #treecover_area = hist.loc[(hist['code'] == 40) | ((hist['code'] > 0) & (hist['code'] < 30)), ['area']].sum()
+    #loss_area = hist.loc[(hist['code'] > 0) & (hist['code'] < 30), ['area']].sum()
     
     #drop 0 ha lines and croped values (255)
-    hist = hist[(hist['area'] != 0) & (hist['code'] != 255.)]
+    hist = hist[(hist['area'] != 0) & (hist['code'] != 255)]
+    
+    #add line indexes 
+    class_ = ['loss_'+str(2000+i) for i in range(1, pm.getMaxYear()+1)] 
+    class_ += ['non forest', 'forest', 'gain', 'gain + loss']
+    hist['class'] = class_
+    
     #create an output file
     hist.to_csv(hist_file, index=False)
     

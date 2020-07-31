@@ -165,7 +165,7 @@ def colorFader(v=0):
     c1=np.array(mpl.colors.to_rgb(c1))
     c2=np.array(mpl.colors.to_rgb(c2))
     
-    return mpl.colors.to_rgb((1-mix)*c1 + mix*c2)
+    return mpl.colors.to_rgba((1-mix)*c1 + mix*c2)
 
 def toHectar(x, res):
     """convert a pixel number into a surface in hectar using the provided resolution (res in meters)"""

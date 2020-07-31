@@ -126,7 +126,7 @@ def getColorTable():
         
         color_r[0], color_g[0], color_b[0] = mpl.colors.to_rgb('black') #no data
         for i in range(1, getMaxYear()+1):
-            color_r[i], color_g[i], color_b[i] = utils.colorFader(i)
+            color_r[i], color_g[i], color_b[i], _ = utils.colorFader(i)
         color_r[30], color_g[30], color_b[30] = mpl.colors.to_rgb('lightgrey') #non forest
         color_r[40], color_g[40], color_b[40] = mpl.colors.to_rgb('darkgreen') #forest
         color_r[50], color_g[50], color_b[50] = mpl.colors.to_rgb('lightgreen') #gains

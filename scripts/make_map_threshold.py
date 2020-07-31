@@ -15,7 +15,8 @@ def make_map_threshold(assetId, threshold):
     clip_map = pm.getGfcDir() + aoi_name + '_{}_gfc_map.tif'.format(threshold)
     
     if os.path.isfile(clip_map):
-        return 'gfc map threshold already performed'
+        print('gfc map threshold already performed')
+        return clip_map
     
     
     # align glad with GFC 
@@ -26,9 +27,6 @@ def make_map_threshold(assetId, threshold):
     
     src = gdal.Open(mask)
     proj = osr.SpatialReference(wkt=src.GetProjection())
-    bb = utils.get_bounding_box(assetId)
-    res = {}
-    _, res['x'], _, _, _, res['y']  = src.GetGeoTransform()
     src = None
     
     #combination into national scale map 
@@ -60,7 +58,7 @@ def make_map_threshold(assetId, threshold):
     os.system(' '.join(command))
     
     #crop and reproject
-    gfc_map_clip = pm.getTmpDir() + aoi_name + '_{}_gfc_map_clip.tif'.format(threshold)
+    gfc_tmp_map_clip = pm.getTmpDir() + aoi_name + '_{}_gfc_map_clip.tif'.format(threshold)
 
     options = gdal.WarpOptions(
         dstSRS = proj,
@@ -70,18 +68,18 @@ def make_map_threshold(assetId, threshold):
         cropToCutline   = True
     )
     
-    ds = gdal.Warp(gfc_map_clip, gfc_tmp_map, options=options)
+    ds = gdal.Warp(gfc_tmp_map_clip, gfc_tmp_map, options=options)
     ds = None
     
     #add pseudo colors
     color_table = pm.getColorTable()
-    gfc_map_clip_pct = pm.getTmpDir() + aoi_name + '_{}_gfc_map_clip_pct.tif'.format(threshold)
+    gfc_tmp_map_clip_pct = pm.getTmpDir() + aoi_name + '_{}_gfc_map_clip_pct.tif'.format(threshold)
     command = [
         "(echo {})".format(color_table),
         '|',
         'oft-addpct.py',
-        gfc_map_clip,
-        gfc_map_clip_pct
+        gfc_tmp_map_clip,
+        gfc_tmp_map_clip_pct
     ]
      
     os.system(' '.join(command))
@@ -92,7 +90,7 @@ def make_map_threshold(assetId, threshold):
         creationOptions = "COMPRESS=LZW",
     )
     
-    gdal.Translate(clip_map, gfc_map_clip_pct, options=options)
+    gdal.Translate(clip_map, gfc_tmp_map_clip_pct, options=options)
     
-    return 1
+    return clip_map
 
