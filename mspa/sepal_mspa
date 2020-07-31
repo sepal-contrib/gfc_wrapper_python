@@ -1,0 +1,341 @@
+#!/bin/bash
+# sepal_mspa
+#
+#############################################################
+# Purpose: 
+#   run MSPA for the user-selected forest mask 
+#   Based on the original version available in GuidosToolbox
+############################################################## 
+# custom script for FAO-FRA, SEPAL ( Ubuntu 16.04.3 LTS )
+# more info at:
+#  - http://forest.jrc.ec.europa.eu/download/software/guidos/
+#  - http://forest.jrc.ec.europa.eu/download/software/guidos/mspa/
+#
+# Requirements: 
+#  - gdal, awk, bash, bc, python
+# 
+# Author: Peter Vogt <peter.vogt@ec.europa.eu>
+# 
+# Version: 1.1 (2018-01-10)
+#############################################################
+# Changelog:
+# 1.0: initial release for FAO-SEPAL
+# 1.1: use enhanced MSPA including openings
+#
+#############################################################
+# Processing steps:
+# 1) test MSPA-compatibility of input image
+# 2) process for MSPA
+# 3) post-process (add back geoheader, amend to final file name, dostats)
+#=======================================================================
+
+
+
+#=======================================================================
+# initial settings and checks
+#=======================================================================
+# change working directory to the location of this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# make sure we are not root
+if [ "$USER" == "root" ]; then
+ echo "Please run this script from a normal user account. Exiting..."
+ exit 1
+fi
+
+# test for 64bit linux
+sysarch=`getconf LONG_BIT`
+if [ $sysarch -eq 32 ]; then 
+ echo "32-bit Linux is not supported. Exiting..."
+ exit 1
+fi
+
+# verify that gdal is installed
+gdalexe=`which gdalinfo 2>/dev/null`
+if [ "$gdalexe" == "" ];then 
+ echo "Please install gdal via your package manager, then run this script again. Exiting..."
+ exit 1
+fi
+
+# start with clean directories output and tmp
+rm -fr output/* tmp/*
+
+# verify that there is only 1 input image tif file (must be a geotiff)
+nr_input=`ls input/*[!.txt] |grep -c 'input/'`
+if [ "$nr_input" != "1" ]; then
+ echo "Number of images in directory 'input' is not 1. Exiting..."
+ exit 1
+fi
+
+# verify the presence of the file  mspa-parameters.txt
+mspa_params='input/mspa-parameters.txt'
+if [ ! -f "$mspa_params" ]; then 
+ echo "The file 'input/mspa-parameters.txt' does not exist. Exiting..."
+ exit 1
+fi
+#  read out the mspa parameters and the statistic switch
+q=`cat "$mspa_params" | wc -w`
+if [ "$q" -ne 5 ]; then
+ echo "Number of parameters in input/mspa-parameters.txt is not 5. Exiting..."
+ exit 1
+fi
+mspa1=`cat "$mspa_params" | awk '{printf $1}'`
+mspa2=`cat "$mspa_params" | awk '{printf $2}'`
+mspa3=`cat "$mspa_params" | awk '{printf $3}'`
+mspa4=`cat "$mspa_params" | awk '{printf $4}'`
+dostats=`cat "$mspa_params" | awk '{printf $5}'`
+
+# the original input image selected by the user
+fn_userinput=`ls input/*[!.txt]`
+
+# find out how much available RAM (in GB) we have on the current machine
+q=`cat /etc/os-release | grep 'PCLinuxOS' | wc -l`
+if [ "$q" -eq 0 ]; then
+ RAM=`free|awk 'FNR == 2 {print $7}'` # *buntu (SEPAL)
+else
+ RAM=`free|awk 'FNR == 3 {print $4}'` # PV:
+fi
+RAM=`echo "scale=2; $RAM/1024/1024" |bc`
+
+# -> maximum image dimension that can be processed on this PC setup
+# dimxy: maximum dimension of a square image
+# max_size: maximum uncompressed file size (in MB) that is acceptable 
+# on this PC to do MSPA-processing
+q=`echo "sqrt(1024*1024*1024/15*($RAM))" |bc` # PV: seems factor 15 could be sufficient, normally 20
+dimxy=`printf "%.0f" $q`
+max_fsize=$((dimxy*dimxy/1024/1024))
+
+# print out system-specific settings
+echo "================================================================="
+echo "Current system status information:"
+echo "================================================================="
+echo "Available free RAM [GB]: "$RAM
+echo "Max. supported square image dimension: "$dimxy "x" $dimxy
+echo "Max. supported uncompressed image file size [MB]: "$max_fsize
+echo " "
+
+#=======================================================================
+# 1) test MSPA-compatibility of input image
+#=======================================================================
+# copy the whatever named user input file to our input.tif
+# use gdal_translate and remove any kind of MSPA-confusing geoheader info
+gdal_translate -co PROFILE=BASELINE "$fn_userinput" tmp/input.tif > /dev/null 2>&1
+
+# investigate the geoheader info and test for compatibility
+gdalinfo -noct tmp/input.tif > tmp/ghinfo.txt
+
+# must be a geotiff
+q=`cat tmp/ghinfo.txt | grep 'GTiff/GeoTIFF' | wc -l`
+if [ "$q" -ne 1 ]; then
+ echo "Input image is not of type geotiff. Exiting..."
+ exit 1
+fi
+
+# must be data type Byte
+q=`cat tmp/ghinfo.txt | grep 'Type=Byte' | wc -l`
+if [ "$q" -ne 1 ]; then
+ echo "Input image is not of data type BYTE. Exiting..."
+ exit 1
+fi
+
+# must be a single-band image
+q=`cat tmp/ghinfo.txt | grep 'Band 2' | wc -l`
+if [ "$q" -ne 0 ]; then
+ echo "Input image has more than 1 band. Exiting..."
+ exit 1
+fi
+
+# image dimension must be suitable for current amount of RAM
+q=`cat tmp/ghinfo.txt | grep 'Size is '` && q=${q:8}
+xdim=`echo $q | awk -F ',' '{print $1}'` 
+ydim=`echo $q | awk -F ',' '{print $2}'` 
+# uncompressed image size in MB
+im_size=$[xdim*ydim/1024/1024+1]
+echo "x/y-dimension of your image: "$xdim "x" $ydim
+echo "Uncompressed file size of your image [MB]: "$im_size
+ 
+# check if user image can beprocessed on this PC
+if [ $im_size -gt $max_fsize ]; then
+ echo "Input image is too large. Exiting..."
+ echo "Please use a SEPAL machine with more RAM"
+ exit 1
+fi
+
+# now investigate the geoheader for image value compatibility
+gdalinfo -noct -mm -hist tmp/input.tif > tmp/ghinfo.txt
+
+
+# maximum value must be 2 byte = forest
+q=`cat tmp/ghinfo.txt | grep 'Computed Min/Max='|awk -F ',' '{print $2}'`
+if [ "$q" != "2.000" ]; then
+ echo "Maximum value in image is not 2 BYTE (Forest). Exiting..."
+ exit 1
+fi
+
+# image must have background values (1 BYTE)
+q=`cat tmp/input.tif.aux.xml | grep '<HistCounts>'|awk -F '|' '{print $2}'`
+if [ "$q" == "0" ]; then
+ echo "Image has no Background values (1 BYTE - Non-Forest). Exiting..."
+ exit 1
+fi
+echo "================================================================="
+echo "MSPA-processing..."
+
+#=======================================================================
+# 2) process for MSPA
+#=======================================================================
+START=$(date +%s)
+./mspa_lin64 -i tmp/input.tif -graphfg $mspa1 -eew $mspa2 -transition $mspa3 -internal $mspa4 -disk -odir tmp/
+
+#=======================================================================
+# 3) post-process (add back geo-header and amend to final file name)
+#=======================================================================
+q="${fn_userinput:6}"
+fbname="${q%.*}"
+mspa_ext=$mspa1'_'$mspa2'_'$mspa3'_'$mspa4
+fout='output/'"$fbname"'_'$mspa_ext
+foutname=$fout'.tif'
+fstatoutname=$fout'_stat.txt'
+# add back geo-header 
+python gdalcopyproj.py $fn_userinput tmp/out.tif
+
+# fix MSPA geoheader info so it can be read properly in GTB
+gdal_translate -mo "TIFFTAG_IMAGEDESCRIPTION=TIFF file" -co "COMPRESS=LZW" -mo "TIFFTAG_SOFTWARE=JRC MSPA, http://forest.jrc.ec.europa.eu/download/software/guidos $mspa_ext" tmp/out.tif "$foutname" > /dev/null 2>&1
+
+END=$(date +%s)
+DIFF=$(( $END - $START ))
+echo "MSPA-processing finished successfully in $DIFF seconds"
+echo Resulting MSPA-image file: '"'$foutname'"'
+echo "================================================================="
+
+# check if statistical output is requested
+if [ "$dostats" == '1' ]; then
+ echo "Calculating statistics..."
+ fstats=tmp/outstats.txt
+ gdalinfo -noct -hist tmp/out.tif > $fstats
+ n=$(awk '/256 buckets from/{print NR}' $fstats)
+ n=$((n+1))
+ stats=`sed -n "$n"p $fstats`
+ 
+ # the actual byte-values are listed in MSPA_guide.pdf, page 7
+ # $stats = MSPAclass + 1   for example, Missing (129b) = entry 130 in $stats
+ Core=`echo "$stats" | awk '{printf $18}'`
+ CoreInt=`echo "$stats" | awk '{printf $118}'`
+ Islet=`echo "$stats" | awk '{printf $10}'`
+ IsletInt=`echo "$stats" | awk '{printf $110}'`
+ Perforation=`echo "$stats" | awk '{printf $6}'`
+ PerforationInt=`echo "$stats" | awk '{printf $106}'`
+ Edge=`echo "$stats" | awk '{printf $4}'`
+ EdgeInt=`echo "$stats" | awk '{printf $104}'`
+ # loop pixels
+ Loop1=`echo "$stats" | awk '{printf $66}'`
+ Loop2=`echo "$stats" | awk '{printf $68}'`
+ Loop3=`echo "$stats" | awk '{printf $70}'`
+ Loop1Int=`echo "$stats" | awk '{printf $166}'`
+ Loop2Int=`echo "$stats" | awk '{printf $168}'`
+ Loop3Int=`echo "$stats" | awk '{printf $170}'`
+ # bridge pixels
+ Bridge1=`echo "$stats" | awk '{printf $34}'`
+ Bridge2=`echo "$stats" | awk '{printf $36}'`
+ Bridge3=`echo "$stats" | awk '{printf $38}'`
+ Bridge1Int=`echo "$stats" | awk '{printf $134}'`
+ Bridge2Int=`echo "$stats" | awk '{printf $136}'`
+ Bridge3Int=`echo "$stats" | awk '{printf $138}'`
+ Branch=`echo "$stats" | awk '{printf $2}'`
+ BranchInt=`echo "$stats" | awk '{printf $102}'`
+ BG=`echo "$stats" | awk '{printf $1}'`
+ BorderOpening=`echo "$stats" | awk '{printf $221}'`
+ CoreOpening=`echo "$stats" | awk '{printf $101}'`
+ Missing=`echo "$stats" | awk '{printf $130}'`
+
+ AreaCoreOpening=$CoreOpening
+ AreaOpening=$[CoreOpening+BorderOpening]
+ # Foreground area = image area - BG - Missing
+ AreaForest=$[xdim*ydim-BG-AreaOpening-Missing]
+ AreaIntegral=$[AreaForest+AreaOpening]
+ FG=`echo "scale=8; $AreaForest+0.000000000" |bc`
+ # Percentage of Openings wrt integral Forest Area
+ perc=`echo "scale=8; 100.0/($FG+$AreaOpening)" |bc`
+ Perc_Op=`echo "scale=8; $perc*$AreaOpening" |bc`
+ Perc_Co=`echo "scale=8; $perc*$CoreOpening"|bc`
+ Perc_Bo=`echo "scale=8; $perc*$BorderOpening"|bc`
+ Integrity=`echo "scale=8; 100.0-($Perc_Op)" |bc`
+ 
+ # Core
+ q=$[(Core+CoreInt)] && p_Core=`echo "scale=8; ($q/$FG*100.0)" |bc`
+
+ # Islet
+ q=$[(Islet+IsletInt)] && p_Islet=`echo "scale=8; ($q/$FG*100.0)" |bc`
+ 
+ # Perforation
+ q=$[(Perforation+PerforationInt)] 
+ #  add loop/bridge in Perforation pixels to Perforation pixels
+ q=$[q+Loop3+Loop3Int+Bridge3+Bridge3Int] 
+ p_Perforation=`echo "scale=8; ($q/$FG*100.0)" |bc`
+ 
+ # Edge
+ q=$[(Edge+EdgeInt)] 
+ # add loop/bridge in Edge pixels to Edge pixels
+ q=$[q+Loop2+Loop2Int+Bridge2+Bridge2Int] 
+ p_Edge=`echo "scale=8; ($q/$FG*100.0)" |bc`
+ 
+ # Loop
+ q=$[(Loop1+Loop1Int)] 
+ p_Loop=`echo "scale=8; ($q/$FG*100.0)" |bc`
+  
+ # Bridge
+ q=$[(Bridge1+Bridge1Int)] 
+ p_Bridge=`echo "scale=8; ($q/$FG*100.0)" |bc`
+ 
+ # Branch
+ q=$[(Branch+BranchInt)] 
+ p_Branch=`echo "scale=8; ($q/$FG*100.0)" |bc`
+ 
+ # write out the statistics
+ echo "MSPA summary statistics using MSPA-parameters: "$mspa1'_'$mspa2'_'$mspa3'_'$mspa4 > $fstatoutname
+ echo "Important note: " >> $fstatoutname
+ echo "1.) These statistics are only meaningful when using equal-area projections." >> $fstatoutname
+ echo "2.) Changing MSPA-Parameter 3, Transition, will change the graphics only" >> $fstatoutname
+ echo "    but NOT the actual image pixel values NOR the statistics."  >> $fstatoutname
+ echo "3.) Perforated Forest Area (Openings): requires setting MSPA-Parameter 4 = 1" >> $fstatoutname
+ echo "4.) Please check p.7 MSPA_Guide.pdf for additional MSPA details." >> $fstatoutname
+ echo " " >> $fstatoutname
+ echo "Area statistics: " >> $fstatoutname
+ echo "===============================================================================" >> $fstatoutname
+ echo "a) Area of Forest Land Cover         : "$AreaForest "pixels" >> $fstatoutname
+ echo "b) Area of CoreOpenings              : "$CoreOpening "pixels, ("$Perc_Co" % of iFA)" >> $fstatoutname
+ echo "c) Area of BorderOpenings            : "$BorderOpening "pixels ("$Perc_Bo" % of iFA)" >> $fstatoutname
+ echo "d) Area of Openings (b+c)            : "$AreaOpening "pixels ("$Perc_Op" % of iFA)" >> $fstatoutname
+ echo "e) Integral Forest Area (iFA: a+d)   : "$AreaIntegral "pixels" >> $fstatoutname
+ echo "f) Forest Integrity (100-d*100/e)    : "$Integrity "%" >> $fstatoutname
+ echo " " >> $fstatoutname
+ echo "MSPA-class proportions, relative to Area of Forest Land Cover (a): " >> $fstatoutname
+ echo "===============================================================================" >> $fstatoutname
+ echo "Core (green)      : "$p_Core "%" >> $fstatoutname
+ echo "Islet (brown)     : "$p_Islet "%" >> $fstatoutname
+ echo "Perforation (blue): "$p_Perforation "%" >> $fstatoutname
+ echo "Edge (black)      : "$p_Edge "%" >> $fstatoutname
+ echo "Loop (yellow)     : "$p_Loop "%" >> $fstatoutname
+ echo "Bridge (red)      : "$p_Bridge "%" >> $fstatoutname
+ echo "Branch (orange)   : "$p_Branch "%" >> $fstatoutname
+ echo "===============================================================================" >> $fstatoutname
+ check=`echo "scale=8; $p_Core+$p_Islet+$p_Perforation+$p_Edge+$p_Loop+$p_Bridge+$p_Branch"|bc`
+ echo "MSPA-class Total  : "$check "%" >> $fstatoutname
+ 
+ echo Resulting MSPA-stats file: '"'$fstatoutname'"'
+ echo "================================================================="
+
+fi
+
+#=======================================================================
+# the end
+#=======================================================================
+# clean out tmp
+rm -fr tmp/* disk*.tif
+
+exit 0
+
+
+
+
+

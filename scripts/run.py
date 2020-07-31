@@ -12,13 +12,18 @@ import earthpy.plot as ep
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import rasterio as rio
+import gdal
+from osgeo import osr
+import shutil
 
 from scripts import make_aoi_shp as mas
 from scripts import download_merge_glad as dmg
 from scripts import make_map_threshold as mmt
+from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
+from distutils.dir_util import copy_tree
 
 ee.Initialize()
 
@@ -173,4 +178,100 @@ def displayGfcResults(clip_map, csv_file, assetId):
          
     
     return children
+
+def mspaAnalysis(
+    clip_map, 
+    assetId, 
+    threshold, 
+    foreground_connectivity, 
+    edge_width, 
+    transition_core, 
+    separate_feature, 
+    statistics,
+    output
+):
+    
+    #aoi name
+    aoi_name = gfc_utils.get_aoi_name(assetId)
+    
+    #link the parameters
+    mspa_param = [
+        str(foreground_connectivity), 
+        str(edge_width),
+        str(transition_core), 
+        str(separate_feature), 
+        str(statistics)
+    ]
+    
+    su.displayIO(output, 'Launch mspa with "{}" inputs'.format('_'.join(mspa_param)))
+    
+    #check if file already exist
+    mspa_map_proj = pm.getGfcDir() + aoi_name + '{}_{}_mspa_map.tif'.format(
+        threshold, 
+        '_'.join(mspa_param)
+    )
+    
+    if os.path.isfile(mspa_map_proj):
+        su.displayIO(output, 'mspa masked map already ready', alert_type='success')
+        return mspa_map_proj
+    
+    #convert to bin_map
+    bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
+    
+    #get the init file proj system 
+    src = gdal.Open(clip_map)
+    proj = osr.SpatialReference(wkt=src.GetProjection())
+    src = None
+    
+    #copy the script files in tmp 
+    copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
+    
+    #create the 3 new tmp dir
+    mspa_input_dir = pm.create_folder(pm.getTmpMspaDir() + 'input') + '/'
+    mspa_output_dir = pm.create_folder(pm.getTmpMspaDir() + 'output') + '/'
+    mspa_tmp_dir = pm.create_folder(pm.getTmpMspaDir() + 'tmp') + '/' 
+    
+    #copy the bin_map to input_dir
+    bin_tmp_map = mspa_input_dir + 'input.tif'
+    shutil.copyfile(bin_map, bin_tmp_map)
+    
+    #create the parameter file     
+    str_ = ' '.join(mspa_param)
+    with open(mspa_input_dir + 'mspa-parameters.txt',"w+") as file:
+        file.write(' '.join(mspa_param))
+        file.close()
+        
+    #launch the process 
+    command = [
+        'chmod', '755',
+        pm.getTmpMspaDir() + 'mspa_lin64'
+    ]
+    os.system(' '.join(command))
+    print(' '.join(command))
+    
+    return
+    
+    #copy result files in gfc
+    mspa_tmp_stat = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '_stat.txt'
+    mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+        threshold, 
+        '_'.join(mspa_param)
+    )
+    shutil.copyfile(mspa_tmp_stat, mspa_stat)
+    
+    mspa_tmp_map = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '.tif'
+    mspa_map = pm.getGfcDir() + aoi_name + '{}_{}_mspa_map_tmp.tif'.format(
+        threshold, 
+        '_'.join(mspa_param)
+    )
+    shutil.copyfile(mspa_tmp_map, mspa_map)
+    
+    #add projection
+    options = gdal.TranslateOptions(outputSRS=proj)
+    gdal.Translate(mspa_map_proj, mspa_map, options=options)
+    
+    #flush tmp directory
+    shutil.rmtree(pm.getTmpDir())
+    
+    return mspa_map_proj
     

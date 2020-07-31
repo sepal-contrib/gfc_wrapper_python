@@ -57,7 +57,7 @@ def getMspaDir():
     return create_folder(pathname)
 
 def getTmpMspaDir():
-    pathname = os.path.join(getRootDir(), 'tmp/mspa') + '/'
+    pathname = os.path.join(getResultDir(), 'tmp/mspa') + '/'
     return create_folder(pathname)
 
 def getUtilsDir():
