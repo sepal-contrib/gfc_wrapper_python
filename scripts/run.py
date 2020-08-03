@@ -86,7 +86,7 @@ def displayGfcResults(clip_map, csv_file, assetId):
     ax_x = Axis(label='year', scale=x_sc)
     ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
     bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
-    title ='Distribution of fforest loss per year in ' + aoi_name
+    title ='Distribution of forest loss per year in ' + aoi_name
     fig = Figure(
         title= title,
         marks=[bar], 
@@ -203,7 +203,7 @@ def mspaAnalysis(
         str(statistics)
     ]
     
-    su.displayIO(output, 'Launch mspa with "{}" inputs'.format('_'.join(mspa_param)))
+    su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
     
     #check if file already exist
     mspa_map_proj = pm.getGfcDir() + aoi_name + '{}_{}_mspa_map.tif'.format(
