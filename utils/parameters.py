@@ -3,7 +3,7 @@ import sys
 sys.path.append("..") 
 from utils import utils
 import pandas as pd 
-import matplotlib as mpl
+from matplotlib import colors
 
 
 def create_folder(pathname):
@@ -69,24 +69,6 @@ def getUtilsDir():
 def getMaxYear():
     return 19
 
-def getSpacing():
-    return 0.011
-
-def getOffset():
-    return 0.001
-
-def getProj():
-    return '+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m no_defs'
-
-def getDataset():
-    return "GFC-2019-v1.7"
-
-def getClasses():
-    return [100,50,40,30,20,10,5,4,3,2,1]
-
-def getTypes():
-    return ["treecover2000","lossyear","gain","datamask"]
-
 def getDataset():
     return 'UMD/hansen/global_forest_change_2019_v1_7'
 
@@ -120,35 +102,22 @@ def getCodes():
 
 def getSldStyle():
     #Define an SLD style of discrete intervals to apply to the image.
+    color_map_entry = '\n<ColorMapEntry color="{0}" quantity="{1}" label="{2}"/>' 
     
     # TODO can do it programatically
     sld_intervals = '<RasterSymbolizer>' 
-    sld_intervals += '<ColorMap type="intervals" extended="false" >' 
-    sld_intervals += '<ColorMapEntry color="#000000" quantity="0" label="no data"/>' 
-    sld_intervals += '<ColorMapEntry color="#F9F200" quantity="1" label="loss-2001"/>' 
-    sld_intervals += '<ColorMapEntry color="#DFF800" quantity="2" label="loss-2002"/>' 
-    sld_intervals += '<ColorMapEntry color="#EDD700" quantity="3" label="loss-2003"/>' 
-    sld_intervals += '<ColorMapEntry color="#E7C900" quantity="4" label="loss-2004"/>' 
-    sld_intervals += '<ColorMapEntry color="#E0BC00" quantity="5" label="loss-2005"/>' 
-    sld_intervals += '<ColorMapEntry color="#DAAE00" quantity="6" label="loss-2006"/>' 
-    sld_intervals += '<ColorMapEntry color="#D4A100" quantity="7" label="loss-2007"/>' 
-    sld_intervals += '<ColorMapEntry color="#CE9400" quantity="8" label="loss-2008"/>' 
-    sld_intervals += '<ColorMapEntry color="#C88600" quantity="9" label="loss-2009"/>' 
-    sld_intervals += '<ColorMapEntry color="#C27900" quantity="10" label="loss-2010"/>' 
-    sld_intervals += '<ColorMapEntry color="#BC6B00" quantity="11" label="loss-2011"/>' 
-    sld_intervals += '<ColorMapEntry color="#B65E00" quantity="12" label="loss-2012"/>' 
-    sld_intervals += '<ColorMapEntry color="#B05100" quantity="13" label="loss-2013"/>' 
-    sld_intervals += '<ColorMapEntry color="#AA4300" quantity="14" label="loss-2014"/>' 
-    sld_intervals += '<ColorMapEntry color="#A33600" quantity="15" label="loss-2015"/>' 
-    sld_intervals += '<ColorMapEntry color="#9D2800" quantity="16" label="loss-2016"/>' 
-    sld_intervals += '<ColorMapEntry color="#971B00" quantity="17" label="loss-2017"/>' 
-    sld_intervals += '<ColorMapEntry color="#910D00" quantity="18" label="loss-2018"/>' 
-    sld_intervals += '<ColorMapEntry color="#8B0000" quantity="19" label="loss-2019"/>' 
-    sld_intervals += '<ColorMapEntry color="#D3D3D3" quantity="30" label="non forest"/>' 
-    sld_intervals += '<ColorMapEntry color="#006400" quantity="40" label="stable forest"/>' 
-    sld_intervals += '<ColorMapEntry color="#800080" quantity="51" label="gain + loss"/>' 
-    sld_intervals += '</ColorMap>'
-    sld_intervals += '</RasterSymbolizer>'
+    sld_intervals += '\n<ColorMap type="intervals" extended="false" >' 
+    
+    sld_intervals += color_map_entry.format(colors.to_hex('black').upper(), 0, 'no data')
+    for i in range(1, getMaxYear()+1):
+        sld_intervals += color_map_entry.format(utils.colorFader(i).upper(), i, 'loss-' + str(2000+i))
+    sld_intervals += color_map_entry.format(colors.to_hex('lightgrey').upper(), 30, 'non forest')
+    sld_intervals += color_map_entry.format(colors.to_hex('darkgreen').upper(), 40, 'stable forest')
+    sld_intervals += color_map_entry.format(colors.to_hex('lightgreen').upper(), 50, 'gain')
+    sld_intervals += color_map_entry.format(colors.to_hex('purple').upper(), 51, 'gain + loss')
+                                            
+    sld_intervals += '\n</ColorMap>'
+    sld_intervals += '\n</RasterSymbolizer>'    
     
     return sld_intervals
 

@@ -44,7 +44,8 @@ def gfc_analysis(assetId, threshold, output):
         task_name = aoi_name + '_{}_gfc_map'.format(threshold)
         
         #launch the gee task
-        if gdrive.get_files(task_name) == []:
+        drive_handler = gdrive.gdrive()
+        if drive_handler.get_files(task_name) == []:
             #launch the exportation of the map
             task_config = {
                 'image':gfc_map.sldStyle(pm.getSldStyle()),
@@ -64,7 +65,6 @@ def gfc_analysis(assetId, threshold, output):
         su.displayIO(output, 'start downloading to Sepal')
         
         #download to sepal
-        drive_handler = gdrive.gdrive()
         files = drive_handler.get_files(task_name)
         drive_handler.download_files(files, pm.getGfcDir())
         
