@@ -11,7 +11,6 @@ def create_folder(pathname):
         os.makedirs(pathname)
     return pathname
 
-
 ################################################################
 ########                        folders                 ########
 ################################################################
@@ -88,6 +87,9 @@ def getClasses():
 def getTypes():
     return ["treecover2000","lossyear","gain","datamask"]
 
+def getDataset():
+    return 'UMD/hansen/global_forest_change_2019_v1_7'
+
 ##########################################################
 #########                     legend                ######
 ##########################################################
@@ -111,7 +113,44 @@ def getMyLabel():
     return labels
 
 def getCodes():
-    return {getMyClasses()[index]: value for index, value in enumerate(getMyLabel()) }
+    codes = [i for i in range(1, getMaxYear() + 1)] + [30, 40, 50, 51]
+    codes = [str(i) for i in codes]
+    
+    return codes
+
+def getSldStyle():
+    #Define an SLD style of discrete intervals to apply to the image.
+    
+    # TODO can do it programatically
+    sld_intervals = '<RasterSymbolizer>' 
+    sld_intervals += '<ColorMap type="intervals" extended="false" >' 
+    sld_intervals += '<ColorMapEntry color="#000000" quantity="0" label="no data"/>' 
+    sld_intervals += '<ColorMapEntry color="#F9F200" quantity="1" label="loss-2001"/>' 
+    sld_intervals += '<ColorMapEntry color="#DFF800" quantity="2" label="loss-2002"/>' 
+    sld_intervals += '<ColorMapEntry color="#EDD700" quantity="3" label="loss-2003"/>' 
+    sld_intervals += '<ColorMapEntry color="#E7C900" quantity="4" label="loss-2004"/>' 
+    sld_intervals += '<ColorMapEntry color="#E0BC00" quantity="5" label="loss-2005"/>' 
+    sld_intervals += '<ColorMapEntry color="#DAAE00" quantity="6" label="loss-2006"/>' 
+    sld_intervals += '<ColorMapEntry color="#D4A100" quantity="7" label="loss-2007"/>' 
+    sld_intervals += '<ColorMapEntry color="#CE9400" quantity="8" label="loss-2008"/>' 
+    sld_intervals += '<ColorMapEntry color="#C88600" quantity="9" label="loss-2009"/>' 
+    sld_intervals += '<ColorMapEntry color="#C27900" quantity="10" label="loss-2010"/>' 
+    sld_intervals += '<ColorMapEntry color="#BC6B00" quantity="11" label="loss-2011"/>' 
+    sld_intervals += '<ColorMapEntry color="#B65E00" quantity="12" label="loss-2012"/>' 
+    sld_intervals += '<ColorMapEntry color="#B05100" quantity="13" label="loss-2013"/>' 
+    sld_intervals += '<ColorMapEntry color="#AA4300" quantity="14" label="loss-2014"/>' 
+    sld_intervals += '<ColorMapEntry color="#A33600" quantity="15" label="loss-2015"/>' 
+    sld_intervals += '<ColorMapEntry color="#9D2800" quantity="16" label="loss-2016"/>' 
+    sld_intervals += '<ColorMapEntry color="#971B00" quantity="17" label="loss-2017"/>' 
+    sld_intervals += '<ColorMapEntry color="#910D00" quantity="18" label="loss-2018"/>' 
+    sld_intervals += '<ColorMapEntry color="#8B0000" quantity="19" label="loss-2019"/>' 
+    sld_intervals += '<ColorMapEntry color="#D3D3D3" quantity="30" label="non forest"/>' 
+    sld_intervals += '<ColorMapEntry color="#006400" quantity="40" label="stable forest"/>' 
+    sld_intervals += '<ColorMapEntry color="#800080" quantity="51" label="gain + loss"/>' 
+    sld_intervals += '</ColorMap>'
+    sld_intervals += '</RasterSymbolizer>'
+    
+    return sld_intervals
 
 def getColorTable():
     
@@ -141,83 +180,3 @@ def getColorTable():
         color_table.to_csv(pathname, header=False, index=False, sep=' ')
     
     return pathname
-
-def getColorTableGlad():
-    
-    pathname = getTmpDir() + 'color_table_glad.txt'
-    
-    if not os.path.isfile(pathname):
-    
-        classes = [i for i in range(0,9)]
-        
-        length = len(classes)
-        color_r = {}
-        color_g = {}
-        color_b = {}
-        
-        color_r[0], color_g[0], color_b[0] = mpl.colors.to_rgb('black') # no data
-        color_r[1], color_g[1], color_b[1] = mpl.colors.to_rgb('green') # Foret accord
-        color_r[2], color_g[2], color_b[2] = mpl.colors.to_rgb('red') # Pertes GLAD < Pertes GFC
-        color_r[3], color_g[3], color_b[3] = mpl.colors.to_rgb('yellow') # Pertes agree
-        color_r[4], color_g[4], color_b[4] = mpl.colors.to_rgb('purple') # Pertes GLAD > Pertes GFC
-        color_r[5], color_g[5], color_b[5] = mpl.colors.to_rgb('blue') # Gains accord
-        color_r[6], color_g[6], color_b[6] = mpl.colors.to_rgb('lightblue') # Gains GLAD > Gains GFC
-        color_r[7], color_g[7], color_b[7] = mpl.colors.to_rgb('darkblue') # Gains GLAD < Gains GFC
-        color_r[8], color_g[8], color_b[8] = mpl.colors.to_rgb('grey') # Non Foret accord
-        
-        #transform the dicts into lists
-        color_r = [int(round(color_r[idx]*255)) for idx in color_r.keys()]
-        color_g = [int(round(color_g[idx]*255)) for idx in color_g.keys()]
-        color_b = [int(round(color_b[idx]*255)) for idx in color_b.keys()]
-        
-        color_table = pd.DataFrame({'classes':classes, 'red': color_r, 'green': color_g, 'blue': color_b})
-        
-        color_table.to_csv(pathname, header=False, index=False, sep=' ')
-        
-    return pathname
-
-def getPalette():
-    return [
-        'yellow',
-        'darkred', #loss
-        'lightgrey', #non forest
-        'darkgreen', #forest
-        'lightgreen', #gain
-        'black', #ndat
-        'purple' #gnls
-    ]
-
-def getZonalLabels():
-    
-    legend = [
-        'zone_id',
-        'total',
-        'no_data',
-        'non_forest',
-        'forest',
-        'gain',
-        'gain_loss'
-    ]
-
-    years = [ 'loss_{}'.format(str(i)) for i in range(1, getMaxYear()+1)]
-    legend[3:3] = years
-    
-    return legend
-
-def getGladLabels():
-    
-    my_class = [i for i in range(8+1)]
-    fnf_gfc_2000 = ['nodata'] + ['forest']*4 + ['non_forest']*4
-    fnf_glad_2010 = ['nodata'] + ['forest']*2 + ['non_forest']*2 + ['forest']*2 + ['non_forest']*2
-    chg_gfc = ['nodata','Stable','Loss','Loss','Stable','Gain','Stable','Gain','Stable']
-    agree = ['nodata','Yes','No','Yes','No','Yes','No','No','Yes']
-    
-    df = pd.DataFrame({
-        'code': my_class,
-        'fnf_gfc_2000': fnf_gfc_2000,
-        'fnf_glad_2010': fnf_glad_2010,
-        'chg_gfc': chg_gfc,
-        'agree': agree
-    })
-    
-    return df

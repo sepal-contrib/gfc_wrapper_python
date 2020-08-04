@@ -7,77 +7,119 @@ from bqplot import pyplot as plt
 import ipyvuetify as v
 from sepal_ui import widgetFactory as wf
 import geemap
-import ee 
-import earthpy.plot as ep
+import ee
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import rasterio as rio
-import gdal
-from osgeo import osr
 import shutil
+import glob
 
-from scripts import make_aoi_shp as mas
-from scripts import download_merge_glad as dmg
-from scripts import make_map_threshold as mmt
 from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
+from gfc_wrapper_python.utils import gdrive
+from gfc_wrapper_python.utils import gee
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
 from distutils.dir_util import copy_tree
 
+
 ee.Initialize()
 
-def gfc_analysis(asset, threshold, output):
+def gfc_analysis(assetId, threshold, output):
     
-    #use aoi_name 
-    aoi_name = gfc_utils.get_aoi_name(asset)
+    #use aoi_name
+    aoi_name = gfc_utils.get_aoi_name(assetId)
     
-    #create a shapefile for the
-    su.displayIO(output, 'Create aoi shapefile')
-    time.sleep(2)
-    mas.make_aoi_shp(asset)
-    su.displayIO(output, 'Aoi shapefile created', alert_type='success')
-    time.sleep(2)
+    #load the map 
+    gfc_map = ca.compute_ee_map(assetId, threshold)
     
-    #load the Hansen_GFC-2019-v1.7
-    su.displayIO(output, 'Download gfc data')
-    time.sleep(2)
-    types = pm.getTypes()
-    prefix = "https://storage.googleapis.com/earthenginepartners-hansen/GFC-2019-v1.7/Hansen_GFC-2019-v1.7_"
-    for type in types:
-        pattern = prefix + type + "_{0}_{1}.tif"
-        name = aoi_name+'_' + type
-        dmg.download_merge(asset, pattern, name)
-    su.displayIO(output, 'Gfc data downloaded', alert_type='success')
-    time.sleep(2)
+    #create tif file
     
-    #make the threshold map
-    su.displayIO(output, 'Make threshold map')
-    time.sleep(2)
-    clip_map = mmt.make_map_threshold(asset, threshold)
-    su.displayIO(output, 'Threshold map downloaded', alert_type='success')
-    time.sleep(2)
+    #skip if output already exist 
+    su.displayIO(output, 'Creating the map')
+    clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
     
-    #compute the area values 
-    su.displayIO(output, 'Compute areas values')
-    time.sleep(2)
-    csv_file = ca.compute_areas(asset, threshold)
-    su.displayIO(output, 'Area computed', alert_type='success')
-    time.sleep(2)
+    if os.path.isfile(clip_map):
+        su.displayIO(output,'Gfc map threshold already performed', alert_type='success')
+    else:
+        task_name = aoi_name + '_{}_gfc_map'.format(threshold)
+        
+        #launch the gee task
+        if gdrive.get_files(task_name) == []:
+            #launch the exportation of the map
+            task_config = {
+                'image':gfc_map.sldStyle(pm.getSldStyle()),
+                'description':task_name,
+                'scale': 30,
+                'region':ee.FeatureCollection(assetId).geometry(),
+                'maxPixels': 1e12
+            }
     
-    #tell the user the computation is finished 
-    su.displayIO(output, 'Process completed', alert_type='success')
+            task = ee.batch.Export.image.toDrive(**task_config)
+            task.start()
+            
+            #wait for the task 
+            gee.wait_for_completion(task_name, output)
+            
+            
+        su.displayIO(output, 'start downloading to Sepal')
+        
+        #download to sepal
+        drive_handler = gdrive.gdrive()
+        files = drive_handler.get_files(task_name)
+        drive_handler.download_files(files, pm.getGfcDir())
+        
+        #merge the tiles together 
+        #create command
+        file_pattern = pm.getGfcDir() + task_name + '*.tif'
+        command = [
+            'gdal_merge.py',
+            '-o', clip_map,
+            '-v', '-co', '"COMPRESS=LZW"',
+        ]
+        command += glob.glob(file_pattern)
+        os.system(' '.join(command))
+        
+        print(command)
+        
+        #delete the tmp_files
+        file_list = []
+        for file in glob.glob(file_pattern):
+            file_list.append(file)
+        
+        for file in file_list:
+            os.remove(file)
     
+    su.displayIO(output, 'Downloaded to Sepal', 'success')
+    
+    
+    su.displayIO(output, 'Create histogram')
+    
+    #create hist
+    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.txt'.format(threshold)
+    
+    if os.path.isfile(csv_file):
+        su.displayIO(output,'histogram already created', alert_type='success')
+    else:
+        hist = ca.create_hist(gfc_map, assetId)
+        hist.to_csv(csv_file, index=False)
+        su.displayIO(output, 'Histogram created', 'success')
+
     return (clip_map, csv_file)
 
-def displayGfcResults(clip_map, csv_file, assetId):
+def displayGfcResults(assetId, threshold, output):
+    
+    su.displayIO(output, 'Loading tiles')
     
     #use aoi_name 
     aoi_name = gfc_utils.get_aoi_name(assetId)
     
-    #create an histogram of the losses 
+    #load the gfc map
+    gfc_map = ca.compute_ee_map(assetId, threshold)
     
-    df = pd.read_csv(csv_file)
+    #load the df
+    df = ca.create_hist(gfc_map, assetId)
+    
+    #create an histogram of the losses
     d_hist = df[(df['code'] > 0) & (df['code'] < 30)]
 
     x_sc = LinearScale()
@@ -133,9 +175,6 @@ def displayGfcResults(clip_map, csv_file, assetId):
     m.add_control(geemap.AttributionControl(position='bottomleft'))
     m.add_control(geemap.ScaleControl(position='bottomleft', imperial=False))
     m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
-    
-    #wait for bug correction on github/geemap
-    #m.add_raster(clip_map, bands=[0], colormap='terrain', layer_name='gfc')
        
     aoi = ee.FeatureCollection(assetId)
     
@@ -149,6 +188,8 @@ def displayGfcResults(clip_map, csv_file, assetId):
     })
     m.addLayer(outline, {'palette': '283593'}, 'aoi')
     
+    #add the values to the map     
+    m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
     
     #create the partial layout 
     partial_layout = v.Layout(
@@ -163,8 +204,12 @@ def displayGfcResults(clip_map, csv_file, assetId):
     )
     
     #create the links
-    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path=csv_file)
-    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path=clip_map)
+    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path='#')
+    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path='#')
+    
+    #deactivate the button they will be activted when the user export the data
+    gfc_download_csv.disabled = True
+    gfc_download_tif.disabled = True
     
     
     #create the display
@@ -176,6 +221,7 @@ def displayGfcResults(clip_map, csv_file, assetId):
         partial_layout
     ]
          
+    su.displayIO(output, 'Tiles ready', 'success')
     
     return children
 
@@ -198,9 +244,9 @@ def mspaAnalysis(
     mspa_param = [
         str(foreground_connectivity), 
         str(edge_width),
-        str(transition_core), 
-        str(separate_feature), 
-        str(statistics)
+        str(int(transition_core)), 
+        str(int(separate_feature)), 
+        str(int(statistics))
     ]
     
     su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
@@ -223,7 +269,7 @@ def mspaAnalysis(
     proj = osr.SpatialReference(wkt=src.GetProjection())
     src = None
     
-    #copy the script files in tmp 
+    #copy the script folder in tmp 
     copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
     
     #create the 3 new tmp dir
@@ -248,8 +294,6 @@ def mspaAnalysis(
     ]
     os.system(' '.join(command))
     print(' '.join(command))
-    
-    return
     
     #copy result files in gfc
     mspa_tmp_stat = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '_stat.txt'

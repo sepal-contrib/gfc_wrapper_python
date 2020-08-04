@@ -4,52 +4,65 @@ import os
 import pandas as pd
 import gdal
 from osgeo import osr
+import ee 
 
-def compute_areas(assetId, threshold):
+ee.Initialize()
+
+def create_hist(ee_map, assetId): 
     
-    aoi_name = utils.get_aoi_name(assetId)
+    #define the pixel resolution
+    res = 30
+
+    hist = ee_map.reduceRegion(**{
+      'reducer': ee.Reducer.autoHistogram(),
+      'geometry': ee.FeatureCollection(assetId).geometry(),
+      'scale': res,
+      'maxPixels': 1e12
+    })
+
+    hist = pd.DataFrame(hist.getInfo()['gfc'])
+
+    #add column name
+    hist.columns= ['code', 'pixels'] 
+
+    #dropping the useless lines (non user defined)
+    hist = hist[hist['code'].isin(pm.getCodes())]
+
+    #construct the surface values
+    hist['area'] = hist['pixels']*res*res/10000
+
+    #construct the labels
+    label = pm.getMyLabel()
+    label.pop(0) #remove the no-data label (it will be removed when it'll work)
+    hist['class'] = label
     
-    hist_file = pm.getStatDir() + aoi_name + "_{}_gfc_stats.txt".format(threshold)
+    return hist
     
-    map_raster = pm.getGfcDir() + aoi_name + '_{}_gfc_map.tif'.format(threshold)
+def compute_ee_map(assetId, threshold):
+     
+    #load the dataset and AOI
+    dataset = ee.Image(pm.getDataset())
+    aoi = ee.FeatureCollection(assetId)
+
+    #clip the dataset on the aoi 
+    clip_dataset = dataset.clip(aoi)
+        
+    #create a composite band bassed on the user threshold 
+
+    calc = "gfc = (A<={0})*((C==1)*50 + (C==0)*30) + " #Non forest 
+    calc += "(A>{0})*(C==1)*(B>0)*51 + "         #gain + loss 
+    calc += "(A>{0})*(C==1)*(B==0)*50 + "        #gain                                             
+    calc += "(A>{0})*(C==0)*(B>0)*B + "          #loss
+    calc += "(A>{0})*(C==0)*(B==0)*40"           #stable forest
+
+    calc = calc.format(threshold)
     
-    #skip if output already exist 
-    if os.path.isfile(hist_file):
-        print('stats already computed')
-        return hist_file 
+    bands = {
+        'A': clip_dataset.select('treecover2000'),
+        'B': clip_dataset.select('lossyear').unmask(0), #be carefull the 0 values are now masked
+        'C': clip_dataset.select('gain'),
+    }
     
-    if not os.path.isfile(map_raster): 
-        print('No gfc map')
-        return None
+    gfc = clip_dataset.expression(calc,bands)
     
-    hist = utils.pixelCount(map_raster)
-    
-    src = gdal.Open(map_raster)
-    proj = osr.SpatialReference(wkt=src.GetProjection())
-    bb = utils.get_bounding_box(assetId)
-    _, resx, _, _, _, resy  = src.GetGeoTransform()
-    src = None
-    
-    #the prjection is not equal-area. Approximation of the pixel surface is done with the followings : 1° = 111 km
-    
-    resx_proj = resx * 111321
-    
-    #convert to hectars
-    hist['area'] = utils.toHectar(hist['pixels'], resx_proj)
-    
-    #checks
-    #treecover_area = hist.loc[(hist['code'] == 40) | ((hist['code'] > 0) & (hist['code'] < 30)), ['area']].sum()
-    #loss_area = hist.loc[(hist['code'] > 0) & (hist['code'] < 30), ['area']].sum()
-    
-    #drop 0 ha lines and croped values (255)
-    hist = hist[(hist['area'] != 0) & (hist['code'] != 255)]
-    
-    #add line indexes 
-    class_ = ['loss_'+str(2000+i) for i in range(1, pm.getMaxYear()+1)] 
-    class_ += ['non forest', 'forest', 'gain', 'gain + loss']
-    hist['class'] = class_
-    
-    #create an output file
-    hist.to_csv(hist_file, index=False)
-    
-    return hist_file
+    return gfc.select('gfc')
