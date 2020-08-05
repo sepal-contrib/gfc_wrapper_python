@@ -140,7 +140,12 @@ def displayGfcMap(assetId, threshold, m, viz, output):
     
     return
      
-def displayGfcResults(assetId, threshold, output):
+def displayGfcHist(assetId, threshold, output):
+    
+    
+    ###############################
+    ##   reload the tiles        ##
+    ###############################
     
     su.displayIO(output, 'Loading tiles')
     
@@ -149,6 +154,15 @@ def displayGfcResults(assetId, threshold, output):
     
     #load the gfc map
     gfc_map = ca.compute_ee_map(assetId, threshold)
+    
+    su.displayIO(output, 'Tiles loaded', 'success')
+    
+    
+    ##########################
+    ##     compute hist     ##
+    ##########################
+    
+    su.displayIO(output, 'Compute areas')
     
     #load the df
     df = ca.create_hist(gfc_map, assetId)
@@ -197,67 +211,20 @@ def displayGfcResults(assetId, threshold, output):
         disable_sort=True,
         hide_default_footer=True
     )
-    #create a map to display the tif files
-
-    #wait for an answer on SO
-    m = geemap.Map()
-    m.clear_layers()
-    m.clear_controls()
-    m.add_basemap('CartoDB.Positron')
-    m.add_control(geemap.ZoomControl(position='topright'))
-    m.add_control(geemap.LayersControl(position='topright'))
-    m.add_control(geemap.AttributionControl(position='bottomleft'))
-    m.add_control(geemap.ScaleControl(position='bottomleft', imperial=False))
-    m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
-       
-    aoi = ee.FeatureCollection(assetId)
-    
-    #Create an empty image into which to paint the features, cast to byte.
-    empty = ee.Image().byte()
-    #Paint all the polygon edges with the same number and width, display.
-    outline = empty.paint(**{
-        'featureCollection': aoi,
-        'color': 1,
-        'width': 3
-    })
-    m.addLayer(outline, {'palette': '283593'}, 'aoi')
-    
-    #add the values to the map     
-    m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
     
     #create the partial layout 
-    partial_layout = v.Layout(
-        Row=True,
-        xs12=True, 
-        align_center=True,
+    partial_layout = v.Flex(
+        xs12=True,
         class_='pa-0 mt-5', 
         children=[
-            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[table, fig]),
-            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[m])
+            table, 
+            fig
         ]
     )
-    
-    #create the links
-    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path='#')
-    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path='#')
-    
-    #deactivate the button they will be activted when the user export the data
-    gfc_download_csv.disabled = True
-    gfc_download_tif.disabled = True
-    
-    
-    #create the display
-    children = [ 
-        v.Layout(Row=True, xs12=True, children=[
-            gfc_download_csv,
-            gfc_download_tif,
-        ]),
-        partial_layout
-    ]
          
-    su.displayIO(output, 'Tiles ready', 'success')
+    su.displayIO(output, 'Areas computation finished', 'success')
     
-    return children
+    return partial_layout
 
 def mspaAnalysis(
     clip_map, 
