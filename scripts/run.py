@@ -106,6 +106,40 @@ def gfc_analysis(assetId, threshold, output):
 
     return (clip_map, csv_file)
 
+def displayGfcMap(assetId, threshold, m, viz, output):
+    
+    su.displayIO(output, 'Loading tiles')
+    
+    #use aoi_name 
+    aoi_name = gfc_utils.get_aoi_name(assetId)
+    
+    #load the gfc map
+    gfc_map = ca.compute_ee_map(assetId, threshold)
+    
+    #load the aoi 
+    aoi = ee.FeatureCollection(assetId)
+    
+    if not viz:
+        #Create an empty image into which to paint the features, cast to byte.
+        empty = ee.Image().byte()
+        #Paint all the polygon edges with the same number and width, display.
+        outline = empty.paint(**{
+            'featureCollection': aoi,
+            'color': 1,
+            'width': 3
+        })
+        m.addLayer(outline, {'palette': '283593'}, 'aoi')
+        
+        #zoom on the aoi
+        m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+    
+    #add the values to the map     
+    m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc_{}'.format(threshold))
+    
+    su.displayIO(output, 'Tiles loaded', 'success')
+    
+    return
+     
 def displayGfcResults(assetId, threshold, output):
     
     su.displayIO(output, 'Loading tiles')
