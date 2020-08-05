@@ -197,7 +197,7 @@ fout='output/'"$fbname"'_'$mspa_ext
 foutname=$fout'.tif'
 fstatoutname=$fout'_stat.txt'
 # add back geo-header 
-python gdalcopyproj.py $fn_userinput tmp/out.tif
+python3 gdalcopyproj.py $fn_userinput tmp/out.tif
 
 # fix MSPA geoheader info so it can be read properly in GTB
 gdal_translate -mo "TIFFTAG_IMAGEDESCRIPTION=TIFF file" -co "COMPRESS=LZW" -mo "TIFFTAG_SOFTWARE=JRC MSPA, http://forest.jrc.ec.europa.eu/download/software/guidos $mspa_ext" tmp/out.tif "$foutname" > /dev/null 2>&1
