@@ -20,7 +20,9 @@ AOI_MESSAGE='click on "selet these inputs" to validate your AOI'
 ##########################################
 ###              gfc process           ###
 ##########################################
-GFC_MESSAGE = 'Click on "Update" to visualize the data'
+GFC_MAP = 'Click on "Update map" to visualize the data'
+GFC_HIST = 'Click on "Compute areas" to analyse the gfc data on your selected aoi. The process can take several minutes.'
+GFC_EXPORT = 'Click on "Export" to export the data to your sepal folder. The process can take time.'
 EXPORT_MESSAGE = 'Click on "Export" to export the data'
 NO_THRESHOLD = 'No threshold have been selected'
 NO_AOI = 'No aoi have been provided, select one in step 1'
