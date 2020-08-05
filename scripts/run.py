@@ -17,6 +17,7 @@ from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
 from gfc_wrapper_python.utils import gdrive
 from gfc_wrapper_python.utils import gee
+from gfc_wrapper_python.utils import mapping
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
 from distutils.dir_util import copy_tree
@@ -168,49 +169,10 @@ def displayGfcHist(assetId, threshold, output):
     df = ca.create_hist(gfc_map, assetId)
     
     #create an histogram of the losses
-    d_hist = df[(df['code'] > 0) & (df['code'] < 30)]
-
-    x_sc = LinearScale()
-    y_sc = LinearScale()  
-    
-    ax_x = Axis(label='year', scale=x_sc)
-    ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
-    bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
-    title ='Distribution of forest loss per year in ' + aoi_name
-    fig = Figure(
-        title= title,
-        marks=[bar], 
-        axes=[ax_x, ax_y], 
-        padding_x=0.025, 
-        padding_y=0.025
-    )
+    fig = ca.plotLoss(df, aoi_name)
     
     #add table of areas
-    df_loss = df[(df['code'] > 0 ) & (df['code'] < 30)] #construct the total loss line
-    df_loss = df_loss.sum()
-    df_loss['code'] = 60
-    df_loss['class'] = 'loss'
-    
-    df_masked = df.append(df_loss, ignore_index=True)
-    df_masked = df_masked[df_masked['code'] >= 30] #drop the loss_[year] lines
-     
-    headers = [
-        {'text': 'Class', 'align': 'start', 'value': 'class'},
-        {'text': 'Area (ha)', 'value': 'area' }
-    ]
-    
-    items = [
-        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
-    ]
-    
-    table = v.DataTable(
-        class_='ma-3',
-        headers=headers,
-        items=items,
-        disable_filtering=True,
-        disable_sort=True,
-        hide_default_footer=True
-    )
+    table = ca.areaTable(df)
     
     #create the partial layout 
     partial_layout = v.Flex(
@@ -232,9 +194,13 @@ def gfcExport(assetId, threshold, output):
     aoi_name = gfc_utils.get_aoi_name(assetId)
     
     #load the map 
+    aoi = ee.FeatureCollection(assetId)
     gfc_map = ca.compute_ee_map(assetId, threshold)
     
-    #create tif file
+    
+    ############################
+    ###    create tif file   ###
+    ############################
     
     #skip if output already exist 
     su.displayIO(output, 'Creating the map')
@@ -296,102 +262,32 @@ def gfcExport(assetId, threshold, output):
     
     su.displayIO(output, 'Create histogram')
     
-    #create hist
-    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.txt'.format(threshold)
+    ############################
+    ###    create txt file   ###
+    ############################
+    
+    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.csv'.format(threshold)
+    hist = ca.create_hist(gfc_map, assetId)
     
     if os.path.isfile(csv_file):
         su.displayIO(output,'histogram already created', alert_type='success')
     else:
-        hist = ca.create_hist(gfc_map, assetId)
         hist.to_csv(csv_file, index=False)
         su.displayIO(output, 'Histogram created', 'success')
-
-    return (clip_map, csv_file)
-
-def displayGfcResults(assetId, threshold, output):
+        
+    #################################
+    ###    create sum-up layout   ###
+    #################################
     
-    su.displayIO(output, 'Loading tiles')
+    fig = ca.plotLoss(hist, aoi_name)
     
-    #use aoi_name 
-    aoi_name = gfc_utils.get_aoi_name(assetId)
+    table = ca.areaTable(hist)
     
-    #load the gfc map
-    gfc_map = ca.compute_ee_map(assetId, threshold)
-    
-    #load the df
-    df = ca.create_hist(gfc_map, assetId)
-    
-    #create an histogram of the losses
-    d_hist = df[(df['code'] > 0) & (df['code'] < 30)]
-
-    x_sc = LinearScale()
-    y_sc = LinearScale()  
-    
-    ax_x = Axis(label='year', scale=x_sc)
-    ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
-    bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
-    title ='Distribution of forest loss per year in ' + aoi_name
-    fig = Figure(
-        title= title,
-        marks=[bar], 
-        axes=[ax_x, ax_y], 
-        padding_x=0.025, 
-        padding_y=0.025
-    )
-    
-    #add table of areas
-    df_loss = df[(df['code'] > 0 ) & (df['code'] < 30)] #construct the total loss line
-    df_loss = df_loss.sum()
-    df_loss['code'] = 60
-    df_loss['class'] = 'loss'
-    
-    df_masked = df.append(df_loss, ignore_index=True)
-    df_masked = df_masked[df_masked['code'] >= 30] #drop the loss_[year] lines
-     
-    headers = [
-        {'text': 'Class', 'align': 'start', 'value': 'class'},
-        {'text': 'Area (ha)', 'value': 'area' }
-    ]
-    
-    items = [
-        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
-    ]
-    
-    table = v.DataTable(
-        class_='ma-3',
-        headers=headers,
-        items=items,
-        disable_filtering=True,
-        disable_sort=True,
-        hide_default_footer=True
-    )
-    #create a map to display the tif files
-
-    #wait for an answer on SO
-    m = geemap.Map()
-    m.clear_layers()
-    m.clear_controls()
-    m.add_basemap('CartoDB.Positron')
-    m.add_control(geemap.ZoomControl(position='topright'))
-    m.add_control(geemap.LayersControl(position='topright'))
-    m.add_control(geemap.AttributionControl(position='bottomleft'))
-    m.add_control(geemap.ScaleControl(position='bottomleft', imperial=False))
+    m = mapping.init_gfc_map()
     m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
-       
-    aoi = ee.FeatureCollection(assetId)
-    
-    #Create an empty image into which to paint the features, cast to byte.
-    empty = ee.Image().byte()
-    #Paint all the polygon edges with the same number and width, display.
-    outline = empty.paint(**{
-        'featureCollection': aoi,
-        'color': 1,
-        'width': 3
-    })
-    m.addLayer(outline, {'palette': '283593'}, 'aoi')
-    
-    #add the values to the map     
     m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
+    outline = ee.Image().byte().paint(featureCollection=aoi, color=1, width=3)
+    m.addLayer(outline, {'palette': '283593'}, 'aoi')
     
     #create the partial layout 
     partial_layout = v.Layout(
@@ -406,13 +302,8 @@ def displayGfcResults(assetId, threshold, output):
     )
     
     #create the links
-    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path='#')
-    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path='#')
-    
-    #deactivate the button they will be activted when the user export the data
-    gfc_download_csv.disabled = True
-    gfc_download_tif.disabled = True
-    
+    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path=csv_file)
+    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path=clip_map)
     
     #create the display
     children = [ 
@@ -423,9 +314,10 @@ def displayGfcResults(assetId, threshold, output):
         partial_layout
     ]
          
-    su.displayIO(output, 'Tiles ready', 'success')
+    su.displayIO(output, 'Export complete', 'success')
     
-    return children
+
+    return (clip_map, csv_file, children)
 
 def mspaAnalysis(
     clip_map, 
@@ -495,7 +387,7 @@ def mspaAnalysis(
         pm.getTmpMspaDir() + 'mspa_lin64'
     ]
     os.system(' '.join(command))
-    print(' '.join(command))
+    
     
     #copy result files in gfc
     mspa_tmp_stat = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '_stat.txt'

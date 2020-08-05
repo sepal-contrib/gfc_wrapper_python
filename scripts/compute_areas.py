@@ -4,7 +4,10 @@ import os
 import pandas as pd
 import gdal
 from osgeo import osr
-import ee 
+import ee
+from bqplot import *
+from bqplot import pyplot as plt
+import ipyvuetify as v
 
 ee.Initialize()
 
@@ -37,6 +40,59 @@ def create_hist(ee_map, assetId):
     hist['class'] = label
     
     return hist
+
+def plotLoss(df, aoi_name):
+    
+    d_hist = df[(df['code'] > 0) & (df['code'] < 30)]
+
+    x_sc = LinearScale()
+    y_sc = LinearScale()  
+    
+    ax_x = Axis(label='year', scale=x_sc)
+    ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
+    bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
+    title ='Distribution of forest loss per year in ' + aoi_name
+    fig = Figure(
+        title= title,
+        marks=[bar], 
+        axes=[ax_x, ax_y], 
+        padding_x=0.025, 
+        padding_y=0.025
+    )
+    
+    return fig
+
+def areaTable(df):
+    #construct the total loss line
+    df_loss = df[(df['code'] > 0 ) & (df['code'] < 30)] 
+    df_loss = df_loss.sum()
+    df_loss['code'] = 60
+    df_loss['class'] = 'loss'
+    df_masked = df.append(df_loss, ignore_index=True)
+    
+    #drop the loss_[year] lines
+    df_masked = df_masked[df_masked['code'] >= 30] 
+    
+    #create the header
+    headers = [
+        {'text': 'Class', 'align': 'start', 'value': 'class'},
+        {'text': 'Area (ha)', 'value': 'area' }
+    ]
+    
+    items = [
+        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
+    ]
+    
+    table = v.DataTable(
+        class_='ma-3',
+        headers=headers,
+        items=items,
+        disable_filtering=True,
+        disable_sort=True,
+        hide_default_footer=True
+    )
+    
+    return table
     
 def compute_ee_map(assetId, threshold):
      
