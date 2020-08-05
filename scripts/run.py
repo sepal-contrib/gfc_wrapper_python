@@ -226,6 +226,207 @@ def displayGfcHist(assetId, threshold, output):
     
     return partial_layout
 
+def gfcExport(assetId, threshold, output):
+    
+    #use aoi_name
+    aoi_name = gfc_utils.get_aoi_name(assetId)
+    
+    #load the map 
+    gfc_map = ca.compute_ee_map(assetId, threshold)
+    
+    #create tif file
+    
+    #skip if output already exist 
+    su.displayIO(output, 'Creating the map')
+    clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
+    
+    if os.path.isfile(clip_map):
+        su.displayIO(output,'Gfc map threshold already performed', alert_type='success')
+    else:
+        task_name = aoi_name + '_{}_gfc_map'.format(threshold)
+        
+        #launch the gee task
+        drive_handler = gdrive.gdrive()
+        if drive_handler.get_files(task_name) == []:
+            #launch the exportation of the map
+            task_config = {
+                'image':gfc_map.sldStyle(pm.getSldStyle()),
+                'description':task_name,
+                'scale': 30,
+                'region':ee.FeatureCollection(assetId).geometry(),
+                'maxPixels': 1e12
+            }
+    
+            task = ee.batch.Export.image.toDrive(**task_config)
+            task.start()
+            
+            #wait for the task 
+            gee.wait_for_completion(task_name, output)
+            
+            
+        su.displayIO(output, 'start downloading to Sepal')
+        
+        #download to sepal
+        files = drive_handler.get_files(task_name)
+        drive_handler.download_files(files, pm.getGfcDir())
+        
+        #merge the tiles together 
+        #create command
+        file_pattern = pm.getGfcDir() + task_name + '*.tif'
+        command = [
+            'gdal_merge.py',
+            '-o', clip_map,
+            '-v', '-co', '"COMPRESS=LZW"',
+        ]
+        command += glob.glob(file_pattern)
+        os.system(' '.join(command))
+        
+        print(command)
+        
+        #delete the tmp_files
+        file_list = []
+        for file in glob.glob(file_pattern):
+            file_list.append(file)
+        
+        for file in file_list:
+            os.remove(file)
+    
+    su.displayIO(output, 'Downloaded to Sepal', 'success')
+    
+    
+    su.displayIO(output, 'Create histogram')
+    
+    #create hist
+    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.txt'.format(threshold)
+    
+    if os.path.isfile(csv_file):
+        su.displayIO(output,'histogram already created', alert_type='success')
+    else:
+        hist = ca.create_hist(gfc_map, assetId)
+        hist.to_csv(csv_file, index=False)
+        su.displayIO(output, 'Histogram created', 'success')
+
+    return (clip_map, csv_file)
+
+def displayGfcResults(assetId, threshold, output):
+    
+    su.displayIO(output, 'Loading tiles')
+    
+    #use aoi_name 
+    aoi_name = gfc_utils.get_aoi_name(assetId)
+    
+    #load the gfc map
+    gfc_map = ca.compute_ee_map(assetId, threshold)
+    
+    #load the df
+    df = ca.create_hist(gfc_map, assetId)
+    
+    #create an histogram of the losses
+    d_hist = df[(df['code'] > 0) & (df['code'] < 30)]
+
+    x_sc = LinearScale()
+    y_sc = LinearScale()  
+    
+    ax_x = Axis(label='year', scale=x_sc)
+    ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
+    bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
+    title ='Distribution of forest loss per year in ' + aoi_name
+    fig = Figure(
+        title= title,
+        marks=[bar], 
+        axes=[ax_x, ax_y], 
+        padding_x=0.025, 
+        padding_y=0.025
+    )
+    
+    #add table of areas
+    df_loss = df[(df['code'] > 0 ) & (df['code'] < 30)] #construct the total loss line
+    df_loss = df_loss.sum()
+    df_loss['code'] = 60
+    df_loss['class'] = 'loss'
+    
+    df_masked = df.append(df_loss, ignore_index=True)
+    df_masked = df_masked[df_masked['code'] >= 30] #drop the loss_[year] lines
+     
+    headers = [
+        {'text': 'Class', 'align': 'start', 'value': 'class'},
+        {'text': 'Area (ha)', 'value': 'area' }
+    ]
+    
+    items = [
+        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
+    ]
+    
+    table = v.DataTable(
+        class_='ma-3',
+        headers=headers,
+        items=items,
+        disable_filtering=True,
+        disable_sort=True,
+        hide_default_footer=True
+    )
+    #create a map to display the tif files
+
+    #wait for an answer on SO
+    m = geemap.Map()
+    m.clear_layers()
+    m.clear_controls()
+    m.add_basemap('CartoDB.Positron')
+    m.add_control(geemap.ZoomControl(position='topright'))
+    m.add_control(geemap.LayersControl(position='topright'))
+    m.add_control(geemap.AttributionControl(position='bottomleft'))
+    m.add_control(geemap.ScaleControl(position='bottomleft', imperial=False))
+    m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+       
+    aoi = ee.FeatureCollection(assetId)
+    
+    #Create an empty image into which to paint the features, cast to byte.
+    empty = ee.Image().byte()
+    #Paint all the polygon edges with the same number and width, display.
+    outline = empty.paint(**{
+        'featureCollection': aoi,
+        'color': 1,
+        'width': 3
+    })
+    m.addLayer(outline, {'palette': '283593'}, 'aoi')
+    
+    #add the values to the map     
+    m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
+    
+    #create the partial layout 
+    partial_layout = v.Layout(
+        Row=True,
+        xs12=True, 
+        align_center=True,
+        class_='pa-0 mt-5', 
+        children=[
+            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[table, fig]),
+            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[m])
+        ]
+    )
+    
+    #create the links
+    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path='#')
+    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path='#')
+    
+    #deactivate the button they will be activted when the user export the data
+    gfc_download_csv.disabled = True
+    gfc_download_tif.disabled = True
+    
+    
+    #create the display
+    children = [ 
+        v.Layout(Row=True, xs12=True, children=[
+            gfc_download_csv,
+            gfc_download_tif,
+        ]),
+        partial_layout
+    ]
+         
+    su.displayIO(output, 'Tiles ready', 'success')
+    
+    return children
+
 def mspaAnalysis(
     clip_map, 
     assetId, 
