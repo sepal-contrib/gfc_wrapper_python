@@ -55,10 +55,16 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         #zoom on the aoi
         m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
     
-    #add the values to the map     
-    m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc_{}'.format(threshold))
+    #add the values to the map
+    layer_name = 'gfc_{}'.format(threshold)
+    if not m.find_layer(layer_name):
+        m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, layer_name)
+        message = 'Tiles loaded'
+    else:
+        message = "Tiles were already on the map"
+        
     
-    su.displayIO(output, 'Tiles loaded', 'success')
+    su.displayIO(output, message, 'success')
     
     return
      
