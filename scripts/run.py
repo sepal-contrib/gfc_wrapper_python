@@ -93,7 +93,7 @@ def displayGfcHist(assetId, threshold, output):
     su.displayIO(output, 'Compute areas')
     
     #load the df
-    df = ca.create_hist(gfc_map, assetId)
+    df = ca.create_hist(gfc_map, assetId, output)
     
     #create an histogram of the losses
     fig = ca.plotLoss(df, aoi_name)

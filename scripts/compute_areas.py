@@ -8,35 +8,37 @@ import ee
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
+from sepal_ui.scripts import utils as su
 
 ee.Initialize()
 
-def create_hist(ee_map, assetId): 
+def create_hist(ee_map, assetId, output): 
     
-    #define the pixel resolution
-    res = 30
-
-    hist = ee_map.reduceRegion(**{
-      'reducer': ee.Reducer.autoHistogram(),
-      'geometry': ee.FeatureCollection(assetId).geometry(),
-      'scale': res,
-      'maxPixels': 1e12
-    })
-
-    hist = pd.DataFrame(hist.getInfo()['gfc'])
-
-    #add column name
-    hist.columns= ['code', 'pixels'] 
-
-    #dropping the useless lines (non user defined)
-    hist = hist[hist['code'].isin(pm.getCodes())]
-
-    #construct the surface values
-    hist['area'] = hist['pixels']*res*res/10000
-
     #construct the labels
     label = pm.getMyLabel()
-    label.pop(0) #remove the no-data label (it will be removed when it'll work)
+    
+    columns=['code', 'area_square_meters']
+    row_list = []
+    geom = ee.FeatureCollection(assetId).geometry()
+    for index, code in enumerate(pm.getCodes()):
+        su.displayIO(output, 'computing ' + label[index])
+        code = int(code)
+        mask = ee_map.eq(code)
+        mask_surface = mask.multiply(ee.Image.pixelArea())
+        stats = mask_surface.reduceRegion(**{
+            'reducer': ee.Reducer.sum(),
+            'geometry': geom,
+            'maxPixels': 1e13
+        });
+        row_list.append([code, stats.getInfo()['gfc']])
+
+    
+    hist = pd.DataFrame(row_list, columns=columns)
+    
+    #create an hectares column
+    hist['area'] = hist['area_square_meters']/10000
+    
+    #add the labels
     hist['class'] = label
     
     return hist

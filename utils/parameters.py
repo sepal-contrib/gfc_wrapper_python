@@ -88,9 +88,7 @@ def getMyClasses():
 def getMyLabel():
     
     years = ['loss_{}'.format(str(2000+i)) for i in range (1, getMaxYear()+1)]
-    labels = ["no data","non forest","forest","gains","gain+loss"]
-    pos = 1
-    labels[pos:pos] = years
+    labels = years + ["non forest","forest","gains","gain+loss"]
     
     return labels
 
