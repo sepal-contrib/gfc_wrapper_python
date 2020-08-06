@@ -226,12 +226,11 @@ def gfcExport(assetId, threshold, output):
     #create the partial layout 
     partial_layout = v.Layout(
         Row=True,
-        xs12=True, 
         align_center=True,
         class_='pa-0 mt-5', 
         children=[
-            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[table, fig]),
-            v.Flex(xs12=True, lg6=True, class_='pa-0', children=[m])
+            v.Flex(xs12=True, md6=True, class_='pa-0', children=[table, fig]),
+            v.Flex(xs12=True, md6=True, class_='pa-0', children=[m])
         ]
     )
     
@@ -241,7 +240,7 @@ def gfcExport(assetId, threshold, output):
     
     #create the display
     children = [ 
-        v.Layout(Row=True, xs12=True, children=[
+        v.Layout(Row=True, children=[
             gfc_download_csv,
             gfc_download_tif,
         ]),
