@@ -1,6 +1,7 @@
 from sepal_ui.scripts import utils as su
 from sepal_ui.scripts import mapping as sm
 import time
+import subprocess
 import pandas as pd
 from bqplot import *
 from bqplot import pyplot as plt
@@ -285,8 +286,8 @@ def mspaAnalysis(
     )
     
     if os.path.isfile(mspa_map_proj):
-        su.displayIO(output, 'mspa masked map already ready', alert_type='success')
-        return mspa_map_proj
+        su.displayIO(output, 'Mspa map already ready', alert_type='success')
+        return (mspa_map_proj, mmr.fragmentationMap(mspa_map_proj, output))
     
     #convert to bin_map
     bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
@@ -319,32 +320,47 @@ def mspaAnalysis(
     os.system(' '.join(command))
     
     #launch the process
-    command = ['bash', pm.getTmpMspaDir() + 'sepal_mspa']
-    os.system(' '.join(command))
-    print(' '.join(command))
+    command = ['bash', 'sepal_mspa']
+    kwargs = {
+        'args' : command,
+        'cwd' : pm.getTmpMspaDir(),
+        'stdout' : subprocess.PIPE,
+        'stderr' : subprocess.PIPE,
+        'universal_newlines' : True
+    }
+    with subprocess.Popen(**kwargs) as p:
+        for line in p.stdout:
+            su.displayIO(output, line)
+            
+    #remove the stats parameter for naming 
+    mspa_param_name = '_'.join(mspa_param[:-1])
     
-    
-    #copy result files in gfc
-    mspa_tmp_stat = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '_stat.txt'
-    mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+    #copy result tif file in gfc 
+    mspa_tmp_map = mspa_output_dir + 'input_' + mspa_param_name + '.tif'
+    mspa_map = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map_tmp.tif'.format(
         threshold, 
-        '_'.join(mspa_param)
+        mspa_param_name
     )
-    shutil.copyfile(mspa_tmp_stat, mspa_stat)
     
-    mspa_tmp_map = mspa_output_dir + 'input_' + '_'.join(mspa_param) + '.tif'
-    mspa_map = pm.getGfcDir() + aoi_name + '{}_{}_mspa_map_tmp.tif'.format(
-        threshold, 
-        '_'.join(mspa_param)
-    )
     shutil.copyfile(mspa_tmp_map, mspa_map)
     
     #add projection
     options = gdal.TranslateOptions(outputSRS=proj)
     gdal.Translate(mspa_map_proj, mspa_map, options=options)
     
-    #flush tmp directory
-    shutil.rmtree(pm.getTmpDir())
+    #copy result txt file in gfc
+    if statistics:
+        mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
+        mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+            threshold, 
+            mspa_param_name
+        )
+        shutil.copyfile(mspa_tmp_stat, mspa_stat)
     
-    return mspa_map_proj
+    #flush tmp directory
+    shutil.rmtree(pm.getTmpDir()) 
+    
+    su.displayIO(output, 'Mspa map complete', alert_type='success')    
+    
+    return (mspa_map_proj, mmr.fragmentationMap(mspa_map_proj, output))
     

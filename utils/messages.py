@@ -33,5 +33,6 @@ NO_VIZ= 'Befor launching the export, it is strongly advised to vizualize data'
 ###          MSPA process             ###
 #########################################
 MSPA_MESSAGE = 'click on "Run process" to launch the process on your sepal account'
+MSPA_DISCLAIMER = "The displayed map is not interactive, please use the link if you want to zoom in"
 NO_MAP = 'No map have been provided, compute the GFC analysis first'
 NO_INPUT ='Missing input for the process, complete all fields'

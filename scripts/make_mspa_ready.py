@@ -1,13 +1,16 @@
 from utils import parameters as pm
 from utils import utils
 import os
+from bqplot import *
+import ipywidgets as widgets
+from sepal_ui.scripts import utils as su 
 
 def make_mspa_ready(assetId, threshold, clip_map):
     
     aoi_name = utils.get_aoi_name(assetId)
     
     #skip if outpu already exist 
-    mspa_masked_map = pm.getGfcDir() + aoi_name + '{}_mspa_masked_map.tif'.format(threshold)
+    mspa_masked_map = pm.getGfcDir() + aoi_name + '_{}_mspa_masked_map.tif'.format(threshold)
     
     if os.path.isfile(mspa_masked_map):
         print('mspa masked map already ready')
@@ -22,10 +25,24 @@ def make_mspa_ready(assetId, threshold, clip_map):
         '-A', clip_map,
         '--co', '"COMPRESS=LZW"',
         '--outfile={}'.format(mspa_masked_map),
-        '--calc="{}"'.format(calc)
+        '--calc="{}"'.format(calc),
+        '--type="Byte"'
     ]
     
     os.system(' '.join(command))
     
     return mspa_masked_map
+
+def fragmentationMap(path, output):
+    # TODO before I found how to display tif as interactive maps I use a simple ipywidget
+    
+    su.displayIO(output, 'Displaying results') 
+    with open(path, 'rb') as f:
+        raw_image = f.read()
+    
+    ipyimage = widgets.Image(value=raw_image, format='tif')
+    
+    su.displayIO(output, 'Mspa process complete', 'success')
+    
+    return ipyimage
 
