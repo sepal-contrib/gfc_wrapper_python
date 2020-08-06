@@ -110,7 +110,7 @@ def getSldStyle():
     
     sld_intervals += color_map_entry.format(colors.to_hex('black').upper(), 0, 'no data')
     for i in range(1, getMaxYear()+1):
-        sld_intervals += color_map_entry.format(utils.colorFader(i).upper(), i, 'loss-' + str(2000+i))
+        sld_intervals += color_map_entry.format(colors.to_hex(utils.colorFader(i)).upper(), i, 'loss-' + str(2000+i))
     sld_intervals += color_map_entry.format(colors.to_hex('lightgrey').upper(), 30, 'non forest')
     sld_intervals += color_map_entry.format(colors.to_hex('darkgreen').upper(), 40, 'stable forest')
     sld_intervals += color_map_entry.format(colors.to_hex('lightgreen').upper(), 50, 'gain')
@@ -132,13 +132,13 @@ def getColorTable():
         color_g = {}
         color_b = {}
         
-        color_r[0], color_g[0], color_b[0] = mpl.colors.to_rgb('black') #no data
+        color_r[0], color_g[0], color_b[0] = colors.to_rgb('black') #no data
         for i in range(1, getMaxYear()+1):
-            color_r[i], color_g[i], color_b[i], _ = utils.colorFader(i)
-        color_r[30], color_g[30], color_b[30] = mpl.colors.to_rgb('lightgrey') #non forest
-        color_r[40], color_g[40], color_b[40] = mpl.colors.to_rgb('darkgreen') #forest
-        color_r[50], color_g[50], color_b[50] = mpl.colors.to_rgb('lightgreen') #gains
-        color_r[51], color_g[51], color_b[51] = mpl.colors.to_rgb('purple') #gain + loss
+            color_r[i], color_g[i], color_b[i] = colors.to_rgb(utils.colorFader(i))
+        color_r[30], color_g[30], color_b[30] = colors.to_rgb('lightgrey') #non forest
+        color_r[40], color_g[40], color_b[40] = colors.to_rgb('darkgreen') #forest
+        color_r[50], color_g[50], color_b[50] = colors.to_rgb('lightgreen') #gains
+        color_r[51], color_g[51], color_b[51] = colors.to_rgb('purple') #gain + loss
         
         color_r = [int(round(color_r[idx]*255)) for idx in color_r.keys()]
         color_g = [int(round(color_g[idx]*255)) for idx in color_g.keys()]

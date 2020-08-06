@@ -24,6 +24,6 @@ def colorFader(v=0):
     c1=np.array(mpl.colors.to_rgb(c1))
     c2=np.array(mpl.colors.to_rgb(c2))
     
-    return mpl.colors.to_hex((1-mix)*c1 + mix*c2)
+    return (1-mix)*c1 + mix*c2
 
 

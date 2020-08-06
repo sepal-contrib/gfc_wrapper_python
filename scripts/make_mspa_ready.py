@@ -14,8 +14,8 @@ def make_mspa_ready(assetId, threshold, clip_map):
         return mspa_masked_map
     
     #create the forest mask for MSPA analysis
-    calc = '(A==40)*2' #forest
-    calc += '+ ((A>0)*(A<40)+(A>40))*1' #non_forest <=> A != 40
+    calc = '((A>0)*(A<40)+(A>40))*1' #non_forest <=> A != 40
+    calc += '+ (A==40)*2' #forest
     
     command = [
         'gdal_calc.py',

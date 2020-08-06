@@ -12,6 +12,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import shutil
 import glob
+import gdal
+from osgeo import osr
 
 from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
@@ -24,88 +26,6 @@ from distutils.dir_util import copy_tree
 
 
 ee.Initialize()
-
-def gfc_analysis(assetId, threshold, output):
-    
-    #use aoi_name
-    aoi_name = gfc_utils.get_aoi_name(assetId)
-    
-    #load the map 
-    gfc_map = ca.compute_ee_map(assetId, threshold)
-    
-    #create tif file
-    
-    #skip if output already exist 
-    su.displayIO(output, 'Creating the map')
-    clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
-    
-    if os.path.isfile(clip_map):
-        su.displayIO(output,'Gfc map threshold already performed', alert_type='success')
-    else:
-        task_name = aoi_name + '_{}_gfc_map'.format(threshold)
-        
-        #launch the gee task
-        drive_handler = gdrive.gdrive()
-        if drive_handler.get_files(task_name) == []:
-            #launch the exportation of the map
-            task_config = {
-                'image':gfc_map.sldStyle(pm.getSldStyle()),
-                'description':task_name,
-                'scale': 30,
-                'region':ee.FeatureCollection(assetId).geometry(),
-                'maxPixels': 1e12
-            }
-    
-            task = ee.batch.Export.image.toDrive(**task_config)
-            task.start()
-            
-            #wait for the task 
-            gee.wait_for_completion(task_name, output)
-            
-            
-        su.displayIO(output, 'start downloading to Sepal')
-        
-        #download to sepal
-        files = drive_handler.get_files(task_name)
-        drive_handler.download_files(files, pm.getGfcDir())
-        
-        #merge the tiles together 
-        #create command
-        file_pattern = pm.getGfcDir() + task_name + '*.tif'
-        command = [
-            'gdal_merge.py',
-            '-o', clip_map,
-            '-v', '-co', '"COMPRESS=LZW"',
-        ]
-        command += glob.glob(file_pattern)
-        os.system(' '.join(command))
-        
-        print(command)
-        
-        #delete the tmp_files
-        file_list = []
-        for file in glob.glob(file_pattern):
-            file_list.append(file)
-        
-        for file in file_list:
-            os.remove(file)
-    
-    su.displayIO(output, 'Downloaded to Sepal', 'success')
-    
-    
-    su.displayIO(output, 'Create histogram')
-    
-    #create hist
-    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.txt'.format(threshold)
-    
-    if os.path.isfile(csv_file):
-        su.displayIO(output,'histogram already created', alert_type='success')
-    else:
-        hist = ca.create_hist(gfc_map, assetId)
-        hist.to_csv(csv_file, index=False)
-        su.displayIO(output, 'Histogram created', 'success')
-
-    return (clip_map, csv_file)
 
 def displayGfcMap(assetId, threshold, m, viz, output):
     
@@ -216,7 +136,7 @@ def gfcExport(assetId, threshold, output):
         if drive_handler.get_files(task_name) == []:
             #launch the exportation of the map
             task_config = {
-                'image':gfc_map.sldStyle(pm.getSldStyle()),
+                'image':gfc_map,
                 'description':task_name,
                 'scale': 30,
                 'region':ee.FeatureCollection(assetId).geometry(),
@@ -238,16 +158,26 @@ def gfcExport(assetId, threshold, output):
         
         #merge the tiles together 
         #create command
+        tmp_clip_map = pm.getGfcDir() + aoi_name + '_{}_tmp_merged_gfc_map.tif'.format(threshold)
         file_pattern = pm.getGfcDir() + task_name + '*.tif'
         command = [
             'gdal_merge.py',
-            '-o', clip_map,
+            '-o', tmp_clip_map,
             '-v', '-co', '"COMPRESS=LZW"',
         ]
         command += glob.glob(file_pattern)
         os.system(' '.join(command))
         
-        print(command)
+        #add the color_palette
+        color_table = pm.getColorTable()
+        command = [
+            '(echo {})'.format(color_table),
+            '|',
+            'oft-addpct.py',
+            tmp_clip_map,
+            clip_map
+        ]
+        os.system(' '.join(command))
         
         #delete the tmp_files
         file_list = []
@@ -256,6 +186,9 @@ def gfcExport(assetId, threshold, output):
         
         for file in file_list:
             os.remove(file)
+        
+        os.remove(color_table)
+        os.remove(tmp_clip_map)
     
     su.displayIO(output, 'Downloaded to Sepal', 'success')
     
@@ -381,12 +314,14 @@ def mspaAnalysis(
         file.write(' '.join(mspa_param))
         file.close()
         
-    #launch the process 
-    command = [
-        'chmod', '755',
-        pm.getTmpMspaDir() + 'mspa_lin64'
-    ]
+    #change mspa mod 
+    command = ['chmod', '755', pm.getTmpMspaDir() + 'mspa_lin64']
     os.system(' '.join(command))
+    
+    #launch the process
+    command = ['bash', pm.getTmpMspaDir() + 'sepal_mspa']
+    os.system(' '.join(command))
+    print(' '.join(command))
     
     
     #copy result files in gfc

@@ -103,7 +103,7 @@ def compute_ee_map(assetId, threshold):
     #clip the dataset on the aoi 
     clip_dataset = dataset.clip(aoi)
         
-    #create a composite band bassed on the user threshold 
+    #create a composite band based on the user threshold 
 
     calc = "gfc = (A<={0})*((C==1)*50 + (C==0)*30) + " #Non forest 
     calc += "(A>{0})*(C==1)*(B>0)*51 + "         #gain + loss 
