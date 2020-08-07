@@ -282,90 +282,125 @@ def mspaAnalysis(
         str(int(statistics))
     ]
     
-    su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
-    
-    #check if file already exist
-    mspa_map_proj = pm.getGfcDir() + aoi_name + '{}_{}_mspa_map.tif'.format(
-        threshold, 
-        '_'.join(mspa_param)
-    )
-    
-    if os.path.isfile(mspa_map_proj):
-        su.displayIO(output, 'Mspa map already ready', alert_type='success')
-        return (mspa_map_proj, mmr.fragmentationMap(mspa_map_proj, output))
-    
-    #convert to bin_map
-    bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
-    
-    #get the init file proj system 
-    src = gdal.Open(clip_map)
-    proj = osr.SpatialReference(wkt=src.GetProjection())
-    src = None
-    
-    #copy the script folder in tmp 
-    copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
-    
-    #create the 3 new tmp dir
-    mspa_input_dir = pm.create_folder(pm.getTmpMspaDir() + 'input') + '/'
-    mspa_output_dir = pm.create_folder(pm.getTmpMspaDir() + 'output') + '/'
-    mspa_tmp_dir = pm.create_folder(pm.getTmpMspaDir() + 'tmp') + '/' 
-    
-    #copy the bin_map to input_dir
-    bin_tmp_map = mspa_input_dir + 'input.tif'
-    shutil.copyfile(bin_map, bin_tmp_map)
-    
-    #create the parameter file     
-    str_ = ' '.join(mspa_param)
-    with open(mspa_input_dir + 'mspa-parameters.txt',"w+") as file:
-        file.write(' '.join(mspa_param))
-        file.close()
-        
-    #change mspa mod 
-    command = ['chmod', '755', pm.getTmpMspaDir() + 'mspa_lin64']
-    os.system(' '.join(command))
-    
-    #launch the process
-    command = ['bash', 'sepal_mspa']
-    kwargs = {
-        'args' : command,
-        'cwd' : pm.getTmpMspaDir(),
-        'stdout' : subprocess.PIPE,
-        'stderr' : subprocess.PIPE,
-        'universal_newlines' : True
-    }
-    with subprocess.Popen(**kwargs) as p:
-        for line in p.stdout:
-            su.displayIO(output, line)
-            
     #remove the stats parameter for naming 
     mspa_param_name = '_'.join(mspa_param[:-1])
     
-    #copy result tif file in gfc 
-    mspa_tmp_map = mspa_output_dir + 'input_' + mspa_param_name + '.tif'
-    mspa_map = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map_tmp.tif'.format(
+    su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
+    
+    #check if file already exist
+    mspa_map_proj = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map.tif'.format(
         threshold, 
         mspa_param_name
     )
     
-    shutil.copyfile(mspa_tmp_map, mspa_map)
+    mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+        threshold, 
+        mspa_param_name
+    )
     
-    #add projection
-    options = gdal.TranslateOptions(outputSRS=proj)
-    gdal.Translate(mspa_map_proj, mspa_map, options=options)
+    if os.path.isfile(mspa_map_proj):
+        su.displayIO(output, 'Mspa map already ready', alert_type='success')
+    else:
+        #convert to bin_map
+        bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
     
-    #copy result txt file in gfc
-    if statistics:
-        mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
-        mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+        #get the init file proj system 
+        src = gdal.Open(clip_map)
+        proj = osr.SpatialReference(wkt=src.GetProjection())
+        src = None
+    
+        #copy the script folder in tmp 
+        copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
+    
+        #create the 3 new tmp dir
+        mspa_input_dir = pm.create_folder(pm.getTmpMspaDir() + 'input') + '/'
+        mspa_output_dir = pm.create_folder(pm.getTmpMspaDir() + 'output') + '/'
+        mspa_tmp_dir = pm.create_folder(pm.getTmpMspaDir() + 'tmp') + '/' 
+    
+        #copy the bin_map to input_dir
+        bin_tmp_map = mspa_input_dir + 'input.tif'
+        shutil.copyfile(bin_map, bin_tmp_map)
+    
+        #create the parameter file     
+        str_ = ' '.join(mspa_param)
+        with open(mspa_input_dir + 'mspa-parameters.txt',"w+") as file:
+            file.write(' '.join(mspa_param))
+            file.close()
+        
+        #change mspa mod 
+        command = ['chmod', '755', pm.getTmpMspaDir() + 'mspa_lin64']
+        os.system(' '.join(command))
+    
+        #launch the process
+        command = ['bash', 'sepal_mspa']
+        kwargs = {
+            'args' : command,
+            'cwd' : pm.getTmpMspaDir(),
+            'stdout' : subprocess.PIPE,
+            'stderr' : subprocess.PIPE,
+            'universal_newlines' : True
+        }
+        with subprocess.Popen(**kwargs) as p:
+            for line in p.stdout:
+                su.displayIO(output, line)
+    
+        #copy result tif file in gfc 
+        mspa_tmp_map = mspa_output_dir + 'input_' + mspa_param_name + '.tif'
+        mspa_map = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map_tmp.tif'.format(
             threshold, 
             mspa_param_name
         )
+    
+        shutil.copyfile(mspa_tmp_map, mspa_map)
+    
+        #add projection
+        options = gdal.TranslateOptions(outputSRS=proj)
+        gdal.Translate(mspa_map_proj, mspa_map, options=options)
+    
+        #copy result txt file in gfc
+        mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
         shutil.copyfile(mspa_tmp_stat, mspa_stat)
+        
+        su.displayIO(output, 'Mspa map complete', alert_type='success') 
+        
+        ###################### end of mspa process
     
     #flush tmp directory
     shutil.rmtree(pm.getTmpDir()) 
     
-    su.displayIO(output, 'Mspa map complete', alert_type='success')    
+    #create the output 
+    table = mmr.getTable(mspa_stat)
+    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, output)
+    paths = [mspa_stat, mspa_map_proj]
     
-    return (mspa_map_proj, mmr.fragmentationMap(mspa_map_proj, output))
+    ######################################
+    #####     create the layout        ###
+    ######################################
+    
+    #create the links
+    gfc_download_txt = wf.DownloadBtn('MSPA stats in .txt', path=paths[0])
+    gfc_download_tif = wf.DownloadBtn('MSPA raster in .tif', path=paths[1])
+    
+    #create the partial layout 
+    partial_layout = v.Layout(
+        Row=True,
+        align_center=True,
+        class_='pa-0 mt-5', 
+        children=[
+            v.Flex(xs12=True, md4=True, class_='pa-0', children=[table]),
+            v.Flex(xs12=True, md8=True, class_='pa-0', children=[fragmentation_map])
+        ]
+    )
+    
+    #create the display
+    children = [ 
+        v.Layout(Row=True, children=[
+            gfc_download_txt,
+            gfc_download_tif,
+        ]),
+        partial_layout
+    ]
+    
+    
+    return children
     
