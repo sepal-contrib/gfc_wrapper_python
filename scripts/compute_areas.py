@@ -12,7 +12,36 @@ from sepal_ui.scripts import utils as su
 
 ee.Initialize()
 
-def create_hist(ee_map, assetId, output): 
+def create_hist(map_raster, assetId, output):
+    
+    if not os.path.isfile(map_raster): 
+        print('No gfc map')
+        return None
+    
+    #realize a primary hist
+    hist = utils.pixelCount(map_raster)
+    
+    src = gdal.Open(map_raster)
+    proj = osr.SpatialReference(wkt=src.GetProjection())
+    bb = utils.get_bounding_box(assetId)
+    _, resx, _, _, _, resy  = src.GetGeoTransform()
+    src = None
+    
+    #print(resx, resy)
+    #print(hist)
+    
+    #the prjection is not equal-area. Approximation of the pixel surface is done with the followings : 1° = 111 km
+    
+    resx_proj = resx * 111321
+    resy_proj = -resy * 111321 #resy is negative)
+    
+    #convert to hectars
+    hist['area'] = utils.toHectar(hist['pixels'], resx_proj, resy_proj)
+    
+    
+    return hist
+
+def create_hist_ee(ee_map, assetId, output): 
     
     #construct the labels
     label = pm.getMyLabel()

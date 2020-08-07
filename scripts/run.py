@@ -93,7 +93,7 @@ def displayGfcHist(assetId, threshold, output):
     su.displayIO(output, 'Compute areas')
     
     #load the df
-    df = ca.create_hist(gfc_map, assetId, output)
+    df = ca.create_hist_ee(gfc_map, assetId, output)
     
     #create an histogram of the losses
     fig = ca.plotLoss(df, aoi_name)
@@ -207,7 +207,7 @@ def gfcExport(assetId, threshold, output):
     ############################
     
     csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.csv'.format(threshold)
-    hist = ca.create_hist(gfc_map, assetId)
+    hist = ca.create_hist(clip_map, assetId, output)
     
     if os.path.isfile(csv_file):
         su.displayIO(output,'histogram already created', alert_type='success')
