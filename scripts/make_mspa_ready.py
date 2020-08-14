@@ -69,7 +69,8 @@ def getTable(stat_file):
     for value in list_:
         for line in text:
             if line.startswith(value):
-                items.append({'class':value, 'prop':line.split(':')[1][:-2]})
+                val = '{:.2f}'.format(float(line.split(':')[1][:-2]))
+                items.append({'class':value, 'prop':val})
     
     
     table = v.DataTable(
