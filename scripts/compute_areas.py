@@ -82,7 +82,7 @@ def plotLoss(df, aoi_name):
     ax_x = Axis(label='year', scale=x_sc)
     ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
     bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
-    title ='Distribution of forest loss per year in ' + aoi_name
+    title ='Distribution of tree cover loss per year in ' + aoi_name
     fig = Figure(
         title= title,
         marks=[bar], 
