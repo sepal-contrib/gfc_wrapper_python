@@ -111,7 +111,7 @@ def areaTable(df):
     ]
     
     items = [
-        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
+        {'class':row['class'], 'area':'{}'.format(int(row['area']))} for index, row in df_masked.iterrows()
     ]
     
     table = v.DataTable(
