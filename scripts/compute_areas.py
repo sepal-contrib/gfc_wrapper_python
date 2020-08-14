@@ -9,6 +9,9 @@ from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
 from sepal_ui.scripts import utils as su
+from utils import parameters as pm
+from pathlib import Path
+import subprocess
 
 ee.Initialize()
 
@@ -18,26 +21,47 @@ def create_hist(map_raster, assetId, output):
         print('No gfc map')
         return None
     
-    #realize a primary hist
-    hist = utils.pixelCount(map_raster)
+    #project raster in world mollweide
     
-    src = gdal.Open(map_raster)
+    map_raster_proj = pm.getTmpDir() + Path(map_raster).stem + '_proj.tif'
+    #input_raster = gdal.Open(map_raster)
+    #gdal.Warp(map_raster_proj, input_raster, dstSRS='ESRI:54009')
+    command = [
+        'gdalwarp',
+        map_raster,
+        map_raster_proj,
+        '-t_srs', 'ESRI:54009'
+    ]
+    #os.system(' '.join(command))
+    #print(' '.join(command))
+    
+    kwargs = {
+        'args' : command,
+        'cwd' : os.path.expanduser('~'),
+        'stdout' : subprocess.PIPE,
+        'stderr' : subprocess.PIPE,
+        'universal_newlines' : True
+    }
+    
+    with subprocess.Popen(**kwargs) as p:
+        for line in p.stdout:
+            su.displayIO(output, line)
+            #print(line)
+    
+    #realize a primary hist
+    hist = utils.pixelCount(map_raster_proj)
+    
+    src = gdal.Open(map_raster_proj)
     proj = osr.SpatialReference(wkt=src.GetProjection())
     bb = utils.get_bounding_box(assetId)
     _, resx, _, _, _, resy  = src.GetGeoTransform()
     src = None
     
-    #print(resx, resy)
-    #print(hist)
-    
-    #the prjection is not equal-area. Approximation of the pixel surface is done with the followings : 1° = 111 km
-    
-    resx_proj = resx * 111321
-    resy_proj = -resy * 111321 #resy is negative)
-    
     #convert to hectars
-    hist['area'] = utils.toHectar(hist['pixels'], resx_proj, resy_proj)
+    hist['area'] = utils.toHectar(hist['pixels'], abs(resx), abs(resy))
     
+    #delete the tmp file 
+    os.remove(map_raster_proj)
     
     return hist
 
