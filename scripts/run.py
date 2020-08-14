@@ -175,16 +175,26 @@ def gfcExport(assetId, threshold, output):
         command += glob.glob(file_pattern)
         os.system(' '.join(command))
         
+
+        
+        
         #add the color_palette
+        tmp_pct_clip_map = pm.getGfcDir() + aoi_name + '_{}_tmp_pct.tif'.format(threshold)
         color_table = pm.getColorTable()
         command = [
             '(echo {})'.format(color_table),
             '|',
             'oft-addpct.py',
             tmp_clip_map,
-            clip_map
+            tmp_pct_clip_map
         ]
         os.system(' '.join(command))
+        os.remove(color_table)
+        os.remove(tmp_clip_map)
+        
+        #compress
+        gdal.Translate(clip_map, tmp_pct_clip_map, creationOptions=['COMPRESS=LZW'])
+        os.remove(tmp_pct_clip_map)
         
         #delete the tmp_files
         file_list = []
@@ -194,8 +204,7 @@ def gfcExport(assetId, threshold, output):
         for file in file_list:
             os.remove(file)
         
-        os.remove(color_table)
-        os.remove(tmp_clip_map)
+        
     
     su.displayIO(output, 'Downloaded to Sepal', 'success')
     
@@ -305,9 +314,9 @@ def mspaAnalysis(
         bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
     
         #get the init file proj system 
-        src = gdal.Open(clip_map)
-        proj = osr.SpatialReference(wkt=src.GetProjection())
-        src = None
+        #src = gdal.Open(clip_map)
+        #proj = osr.SpatialReference(wkt=src.GetProjection())
+        #src = None
     
         #copy the script folder in tmp 
         copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
@@ -353,9 +362,9 @@ def mspaAnalysis(
     
         shutil.copyfile(mspa_tmp_map, mspa_map)
     
-        #add projection
-        options = gdal.TranslateOptions(outputSRS=proj)
-        gdal.Translate(mspa_map_proj, mspa_map, options=options)
+        #compress map
+        gdal.Translate(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'])
+        os.remove(mspa_map)
     
         #copy result txt file in gfc
         mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
