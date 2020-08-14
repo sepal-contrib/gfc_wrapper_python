@@ -1,4 +1,5 @@
 import geemap
+from utils import parameters as pm
 
 def init_gfc_map():
     """initialize a geemap to display the aggregated data"""
@@ -21,6 +22,11 @@ def init_gfc_map():
     m.add_control(geemap.LayersControl(position='topright'))
     m.add_control(geemap.AttributionControl(position='bottomleft'))
     m.add_control(geemap.ScaleControl(position='bottomleft', imperial=False))
+    
+    #add the legend 
+    keys = pm.getMyLabel() #hack to increase the space next to the names
+    colors = pm.getColorPalette()
+    m.add_legend(legend_keys=keys, legend_colors=colors, position='topleft')
 
     return m
     

@@ -147,3 +147,16 @@ def getColorTable():
         color_table.to_csv(pathname, header=False, index=False, sep=' ')
     
     return pathname
+
+def getColorPalette():
+    hex_palette = []
+    
+    #hex_palette.append(colors.to_hex('black')) #no data
+    for i in range(1,getMaxYear()+1):
+        hex_palette.append(colors.to_hex(utils.colorFader(i))) #year loss
+    hex_palette.append(colors.to_hex('lightgrey')) #non forest
+    hex_palette.append(colors.to_hex('darkgreen')) #forest
+    hex_palette.append(colors.to_hex('lightgreen')) #gains
+    hex_palette.append(colors.to_hex('purple')) #gain + loss 
+    
+    return hex_palette
