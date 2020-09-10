@@ -2,8 +2,7 @@ from utils import parameters as pm
 from utils import utils
 import os
 import pandas as pd
-import gdal
-from osgeo import osr
+from osgeo import osr, gdal
 import ee
 from bqplot import *
 from bqplot import pyplot as plt
@@ -12,6 +11,7 @@ from sepal_ui.scripts import utils as su
 from utils import parameters as pm
 from pathlib import Path
 import subprocess
+from pyproj import CRS
 
 ee.Initialize()
 
@@ -22,40 +22,18 @@ def create_hist(map_raster, assetId, output):
         return None
     
     #project raster in world mollweide
-    
     map_raster_proj = pm.getTmpDir() + Path(map_raster).stem + '_proj.tif'
-    #input_raster = gdal.Open(map_raster)
-    #gdal.Warp(map_raster_proj, input_raster, dstSRS='ESRI:54009')
-    command = [
-        'gdalwarp',
-        map_raster,
-        map_raster_proj,
-        '-t_srs', 'ESRI:54009'
-    ]
-    #os.system(' '.join(command))
-    #print(' '.join(command))
-    
-    kwargs = {
-        'args' : command,
-        'cwd' : os.path.expanduser('~'),
-        'stdout' : subprocess.PIPE,
-        'stderr' : subprocess.PIPE,
-        'universal_newlines' : True
-    }
-    
-    with subprocess.Popen(**kwargs) as p:
-        for line in p.stdout:
-            su.displayIO(output, line)
-            #print(line)
+    input_ = gdal.Open(map_raster)
+    gdal.Warp(map_raster_proj, input_, dstSRS='ESRI:54009')
     
     #realize a primary hist
     hist = utils.pixelCount(map_raster_proj)
     
     src = gdal.Open(map_raster_proj)
-    proj = osr.SpatialReference(wkt=src.GetProjection())
-    bb = utils.get_bounding_box(assetId)
-    _, resx, _, _, _, resy  = src.GetGeoTransform()
-    src = None
+    gt =src.GetGeoTransform()
+    resx = gt[1]
+    resy =gt[5]
+    #src.close()
     
     #convert to hectars
     hist['area'] = utils.toHectar(hist['pixels'], abs(resx), abs(resy))
