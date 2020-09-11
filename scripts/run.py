@@ -363,7 +363,7 @@ def mspaAnalysis(
         shutil.copyfile(mspa_tmp_map, mspa_map)
     
         #compress map
-        gdal.Translate(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'])
+        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326')
         os.remove(mspa_map)
     
         #copy result txt file in gfc
@@ -379,7 +379,7 @@ def mspaAnalysis(
     
     #create the output 
     table = mmr.getTable(mspa_stat)
-    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, output)
+    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, assetId, output)
     paths = [mspa_stat, mspa_map_proj]
     
     ######################################

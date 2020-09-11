@@ -22,7 +22,7 @@ def create_hist(map_raster, assetId, output):
         return None
     
     #project raster in world mollweide
-    map_raster_proj = pm.getTmpDir() + Path(map_raster).stem + '_proj.tif'
+    map_raster_proj = pm.getGfcDir() + Path(map_raster).stem + '_proj.tif'
     input_ = gdal.Open(map_raster)
     gdal.Warp(map_raster_proj, input_, dstSRS='ESRI:54009')
     
@@ -37,9 +37,6 @@ def create_hist(map_raster, assetId, output):
     
     #convert to hectars
     hist['area'] = utils.toHectar(hist['pixels'], abs(resx), abs(resy))
-    
-    #delete the tmp file 
-    os.remove(map_raster_proj)
     
     return hist
 

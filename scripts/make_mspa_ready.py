@@ -6,6 +6,12 @@ import ipywidgets as widgets
 from sepal_ui.scripts import utils as su 
 import ipyvuetify as v
 import gdal
+from sepal_ui import mapping as sm
+import ee 
+from matplotlib.colors import ListedColormap, to_hex
+import numpy as np
+
+ee.Initialize()
 
 def make_mspa_ready(assetId, threshold, clip_map):
     
@@ -41,18 +47,49 @@ def make_mspa_ready(assetId, threshold, clip_map):
     
     return mspa_masked_map
 
-def fragmentationMap(path, output):
+def fragmentationMap(raster, assetId, output):
     # TODO before I found how to display tif as interactive maps I use a simple ipywidget
     su.displayIO(output, 'Displaying results') 
-    with open(path, 'rb') as f:
-        raw_image = f.read()
-    su.displayIO(output, 'Image read')
-    su.displayIO(output, 'Creating the widget')
-    ipyimage = widgets.Image(value=raw_image, format='tif')
+    
+    map_ = sm.SepalMap()
+
+    ds = gdal.Open(raster)
+    band = ds.GetRasterBand(1)
+    min_, max_ = band.ComputeRasterMinMax()
+    min_, max_ = int(min_), int(max_)
+    color_map = None
+    ct = band.GetRasterColorTable()
+
+    color_map = []
+    for index in range(min_, max_+1):
+        color = ct.GetColorEntry(index)
+    
+        #hide no-data: 
+        if list(color) == mspa_colors['no-data']:
+            color_map.append([.0, .0, .0, .0])
+        else:
+            color_map.append([val/255 for val in list(color)])
+
+    color_map = ListedColormap(color_map, N=max_)
+
+    #display a raster on the map
+    map_.add_raster(raster, colormap=color_map, layer_name='framgmentation map');
+
+    #add a legend 
+    legend_keys = [index for index in mspa_colors]
+    legend_colors = [to_hex([val/255 for val in mspa_colors[index]]) for index in mspa_colors] 
+    map_.add_legend(legend_keys=legend_keys, legend_colors=legend_colors, position='topleft')
+    
+    #Create an empty image into which to paint the features, cast to byte.
+    aoi = ee.FeatureCollection(assetId)
+    empty = ee.Image().byte()
+    outline = empty.paint(**{'featureCollection': aoi, 'color': 1, 'width': 3})
+    map_.addLayer(outline, {'palette': '283593'}, 'aoi')
+    map_.zoom_ee_object(aoi.geometry())
     
     su.displayIO(output, 'Mspa process complete', 'success')
     
-    return ipyimage
+    return map_
 
 def getTable(stat_file):
     
