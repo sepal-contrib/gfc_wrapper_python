@@ -1,5 +1,4 @@
-from sepal_ui.scripts import utils as su
-from sepal_ui.scripts import mapping as sm
+from sepal_ui import mapping as sm
 import time
 import subprocess
 import pandas as pd
@@ -20,7 +19,6 @@ from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
 from gfc_wrapper_python.utils import gdrive
 from gfc_wrapper_python.utils import gee
-from gfc_wrapper_python.utils import mapping
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
 from distutils.dir_util import copy_tree
@@ -30,7 +28,7 @@ ee.Initialize()
 
 def displayGfcMap(assetId, threshold, m, viz, output):
     
-    su.displayIO(output, 'Loading tiles')
+    output.add_live_msg('Loading tiles')
     
     #use aoi_name 
     aoi_name = gfc_utils.get_aoi_name(assetId)
@@ -53,7 +51,7 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         m.addLayer(outline, {'palette': '283593'}, 'aoi')
         
         #zoom on the aoi
-        m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+        m.zoom_ee_object(aoi.geometry())
     
     #add the values to the map
     layer_name = 'gfc_{}'.format(threshold)
@@ -64,7 +62,7 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         message = "Tiles were already on the map"
         
     
-    su.displayIO(output, message, 'success')
+    output.add_live_msg(message, 'success')
     
     return
      
@@ -75,7 +73,7 @@ def displayGfcHist(assetId, threshold, output):
     ##   reload the tiles        ##
     ###############################
     
-    su.displayIO(output, 'Loading tiles')
+    output.add_live_msg('Loading tiles')
     
     #use aoi_name 
     aoi_name = gfc_utils.get_aoi_name(assetId)
@@ -83,14 +81,15 @@ def displayGfcHist(assetId, threshold, output):
     #load the gfc map
     gfc_map = ca.compute_ee_map(assetId, threshold)
     
-    su.displayIO(output, 'Tiles loaded', 'success')
+    
+    output.add_live_msg('Tiles loaded', 'success')
     
     
     ##########################
     ##     compute hist     ##
     ##########################
     
-    su.displayIO(output, 'Compute areas')
+    output.add_live_msg('Compute areas')
     
     #load the df
     df = ca.create_hist_ee(gfc_map, assetId, output)
@@ -111,7 +110,7 @@ def displayGfcHist(assetId, threshold, output):
         ]
     )
          
-    su.displayIO(output, 'Areas computation finished', 'success')
+    output.add_live_msg('Areas computation finished', 'success')
     
     return partial_layout
 
@@ -130,11 +129,11 @@ def gfcExport(assetId, threshold, output):
     ############################
     
     #skip if output already exist 
-    su.displayIO(output, 'Creating the map')
+    output.add_live_msg('Creating the map')
     clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
     
     if os.path.isfile(clip_map):
-        su.displayIO(output,'Gfc map threshold already performed', alert_type='success')
+        output.add_live_msg('Gfc map threshold already performed', 'success')
     else:
         task_name = aoi_name + '_{}_gfc_map'.format(threshold)
         
@@ -157,7 +156,7 @@ def gfcExport(assetId, threshold, output):
             gee.wait_for_completion(task_name, output)
             
             
-        su.displayIO(output, 'start downloading to Sepal')
+        output.add_live_msg('start downloading to Sepal')
         
         #download to sepal
         files = drive_handler.get_files(task_name)
@@ -176,31 +175,31 @@ def gfcExport(assetId, threshold, output):
         os.system(' '.join(command))
         
         #add the color_palette
+        tmp_pct_clip_map = pm.getGfcDir() + aoi_name + '_{}_tmp_pct.tif'.format(threshold)
         color_table = pm.getColorTable()
         command = [
             '(echo {})'.format(color_table),
             '|',
             'oft-addpct.py',
             tmp_clip_map,
-            clip_map
+            tmp_pct_clip_map
         ]
         os.system(' '.join(command))
-        
-        #delete the tmp_files
-        file_list = []
-        for file in glob.glob(file_pattern):
-            file_list.append(file)
-        
-        for file in file_list:
-            os.remove(file)
-        
         os.remove(color_table)
         os.remove(tmp_clip_map)
+        
+        #compress
+        gdal.Translate(clip_map, tmp_pct_clip_map, creationOptions=['COMPRESS=LZW'])
+        os.remove(tmp_pct_clip_map)
+        
+        #delete the tmp_files
+        for file in glob.glob(file_pattern):
+            os.remove(file)
+            
+    output.add_live_msg('Downloaded to Sepal', 'success')
     
-    su.displayIO(output, 'Downloaded to Sepal', 'success')
     
-    
-    su.displayIO(output, 'Create histogram')
+    output.add_live_msg('Create histogram')
     
     ############################
     ###    create txt file   ###
@@ -210,10 +209,10 @@ def gfcExport(assetId, threshold, output):
     hist = ca.create_hist(clip_map, assetId, output)
     
     if os.path.isfile(csv_file):
-        su.displayIO(output,'histogram already created', alert_type='success')
+        output.add_live_msg('histogram already created', 'success')
     else:
         hist.to_csv(csv_file, index=False)
-        su.displayIO(output, 'Histogram created', 'success')
+        output.add_live_msg('Histogram created', 'success')
         
     #################################
     ###    create sum-up layout   ###
@@ -223,8 +222,9 @@ def gfcExport(assetId, threshold, output):
     
     table = ca.areaTable(hist)
     
-    m = mapping.init_gfc_map()
-    m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+    m = sm.SepalMap()
+    m.add_legend(legend_keys=pm.getMyLabel(), legend_colors=pm.getColorPalette(), position='topleft')
+    m.zoom_ee_object(aoi.geometry())
     m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
     outline = ee.Image().byte().paint(featureCollection=aoi, color=1, width=3)
     m.addLayer(outline, {'palette': '283593'}, 'aoi')
@@ -253,7 +253,7 @@ def gfcExport(assetId, threshold, output):
         partial_layout
     ]
          
-    su.displayIO(output, 'Export complete', 'success')
+    output.add_live_msg('Export complete', 'success')
     
 
     return (clip_map, csv_file, children)
@@ -285,7 +285,7 @@ def mspaAnalysis(
     #remove the stats parameter for naming 
     mspa_param_name = '_'.join(mspa_param[:-1])
     
-    su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
+    output.add_live_msg('Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
     
     #check if file already exist
     mspa_map_proj = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map.tif'.format(
@@ -299,15 +299,15 @@ def mspaAnalysis(
     )
     
     if os.path.isfile(mspa_map_proj):
-        su.displayIO(output, 'Mspa map already ready', alert_type='success')
+        output.add_live_msg('Mspa map already ready', 'success')
     else:
         #convert to bin_map
         bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
     
         #get the init file proj system 
-        src = gdal.Open(clip_map)
-        proj = osr.SpatialReference(wkt=src.GetProjection())
-        src = None
+        #src = gdal.Open(clip_map)
+        #proj = osr.SpatialReference(wkt=src.GetProjection())
+        #src = None
     
         #copy the script folder in tmp 
         copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
@@ -353,15 +353,15 @@ def mspaAnalysis(
     
         shutil.copyfile(mspa_tmp_map, mspa_map)
     
-        #add projection
-        options = gdal.TranslateOptions(outputSRS=proj)
-        gdal.Translate(mspa_map_proj, mspa_map, options=options)
+        #compress map
+        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326')
+        os.remove(mspa_map)
     
         #copy result txt file in gfc
         mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
         shutil.copyfile(mspa_tmp_stat, mspa_stat)
         
-        su.displayIO(output, 'Mspa map complete', alert_type='success') 
+        output.add_live_msg('Mspa map complete', 'success') 
         
         ###################### end of mspa process
     
@@ -370,7 +370,7 @@ def mspaAnalysis(
     
     #create the output 
     table = mmr.getTable(mspa_stat)
-    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, output)
+    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, assetId, output)
     paths = [mspa_stat, mspa_map_proj]
     
     ######################################

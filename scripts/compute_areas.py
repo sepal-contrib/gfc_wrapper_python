@@ -2,42 +2,40 @@ from utils import parameters as pm
 from utils import utils
 import os
 import pandas as pd
-import gdal
-from osgeo import osr
+from osgeo import osr, gdal
 import ee
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
-from sepal_ui.scripts import utils as su
+from utils import parameters as pm
+from pathlib import Path
+import subprocess
+from pyproj import CRS
 
 ee.Initialize()
 
 def create_hist(map_raster, assetId, output):
     
     if not os.path.isfile(map_raster): 
-        print('No gfc map')
+        output.add_live_msg('No gfc map', 'error')
         return None
     
+    #project raster in world mollweide
+    map_raster_proj = pm.getGfcDir() + Path(map_raster).stem + '_proj.tif'
+    input_ = gdal.Open(map_raster)
+    gdal.Warp(map_raster_proj, input_, dstSRS='ESRI:54009')
+    
     #realize a primary hist
-    hist = utils.pixelCount(map_raster)
+    hist = utils.pixelCount(map_raster_proj)
     
-    src = gdal.Open(map_raster)
-    proj = osr.SpatialReference(wkt=src.GetProjection())
-    bb = utils.get_bounding_box(assetId)
-    _, resx, _, _, _, resy  = src.GetGeoTransform()
-    src = None
-    
-    #print(resx, resy)
-    #print(hist)
-    
-    #the prjection is not equal-area. Approximation of the pixel surface is done with the followings : 1° = 111 km
-    
-    resx_proj = resx * 111321
-    resy_proj = -resy * 111321 #resy is negative)
+    src = gdal.Open(map_raster_proj)
+    gt =src.GetGeoTransform()
+    resx = gt[1]
+    resy =gt[5]
+    #src.close()
     
     #convert to hectars
-    hist['area'] = utils.toHectar(hist['pixels'], resx_proj, resy_proj)
-    
+    hist['area'] = utils.toHectar(hist['pixels'], abs(resx), abs(resy))
     
     return hist
 
@@ -82,7 +80,7 @@ def plotLoss(df, aoi_name):
     ax_x = Axis(label='year', scale=x_sc)
     ax_y = Axis(label='tree cover loss surface (ha)', scale=y_sc, orientation='vertical') 
     bar = Bars(x=[i+2000 for i in d_hist['code']], y=d_hist['area'], scales={'x': x_sc, 'y': y_sc})
-    title ='Distribution of forest loss per year in ' + aoi_name
+    title ='Distribution of tree cover loss per year in ' + aoi_name
     fig = Figure(
         title= title,
         marks=[bar], 
@@ -111,7 +109,7 @@ def areaTable(df):
     ]
     
     items = [
-        {'class':row['class'], 'area':'{:.2f}'.format(row['area'])} for index, row in df_masked.iterrows()
+        {'class':row['class'], 'area':'{}'.format(int(row['area']))} for index, row in df_masked.iterrows()
     ]
     
     table = v.DataTable(

@@ -75,6 +75,17 @@ def getDataset():
 ##########################################################
 #########                     legend                ######
 ##########################################################
+mspa_colors = {
+    'background': [220, 220, 220, 255],
+    'branch': [255, 140, 0, 255],
+    'perforation': [0, 0, 255, 255],
+    'islet': [160, 60, 0, 255], 
+    'core': [0, 220, 0, 255], 
+    'bridge': [255, 0, 0, 255], 
+    'loop': [255, 255, 0, 255],
+    'edge': [0, 0, 0, 255],
+    'no-data': [255, 255, 255, 255],
+}
 
 def getMyClasses():
     
@@ -147,3 +158,16 @@ def getColorTable():
         color_table.to_csv(pathname, header=False, index=False, sep=' ')
     
     return pathname
+
+def getColorPalette():
+    hex_palette = []
+    
+    #hex_palette.append(colors.to_hex('black')) #no data
+    for i in range(1,getMaxYear()+1):
+        hex_palette.append(colors.to_hex(utils.colorFader(i))) #year loss
+    hex_palette.append(colors.to_hex('lightgrey')) #non forest
+    hex_palette.append(colors.to_hex('darkgreen')) #forest
+    hex_palette.append(colors.to_hex('lightgreen')) #gains
+    hex_palette.append(colors.to_hex('purple')) #gain + loss 
+    
+    return hex_palette
