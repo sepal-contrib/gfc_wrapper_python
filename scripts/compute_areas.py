@@ -7,7 +7,6 @@ import ee
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
-from sepal_ui.scripts import utils as su
 from utils import parameters as pm
 from pathlib import Path
 import subprocess
@@ -18,7 +17,7 @@ ee.Initialize()
 def create_hist(map_raster, assetId, output):
     
     if not os.path.isfile(map_raster): 
-        print('No gfc map')
+        output.add_live_msg('No gfc map', 'error')
         return None
     
     #project raster in world mollweide

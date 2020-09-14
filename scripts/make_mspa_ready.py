@@ -3,7 +3,6 @@ from utils import utils
 import os
 from bqplot import *
 import ipywidgets as widgets
-from sepal_ui.scripts import utils as su 
 import ipyvuetify as v
 import gdal
 from sepal_ui import mapping as sm
@@ -48,8 +47,8 @@ def make_mspa_ready(assetId, threshold, clip_map):
     return mspa_masked_map
 
 def fragmentationMap(raster, assetId, output):
-    # TODO before I found how to display tif as interactive maps I use a simple ipywidget
-    su.displayIO(output, 'Displaying results') 
+    
+    output.add_live_msg('Displaying results')
     
     map_ = sm.SepalMap()
 
@@ -65,7 +64,7 @@ def fragmentationMap(raster, assetId, output):
         color = ct.GetColorEntry(index)
     
         #hide no-data: 
-        if list(color) == mspa_colors['no-data']:
+        if list(color) == pm.mspa_colors['no-data']:
             color_map.append([.0, .0, .0, .0])
         else:
             color_map.append([val/255 for val in list(color)])
@@ -76,8 +75,8 @@ def fragmentationMap(raster, assetId, output):
     map_.add_raster(raster, colormap=color_map, layer_name='framgmentation map');
 
     #add a legend 
-    legend_keys = [index for index in mspa_colors]
-    legend_colors = [to_hex([val/255 for val in mspa_colors[index]]) for index in mspa_colors] 
+    legend_keys = [index for index in pm.mspa_colors]
+    legend_colors = [to_hex([val/255 for val in pm.mspa_colors[index]]) for index in pm.mspa_colors] 
     map_.add_legend(legend_keys=legend_keys, legend_colors=legend_colors, position='topleft')
     
     #Create an empty image into which to paint the features, cast to byte.
@@ -87,7 +86,7 @@ def fragmentationMap(raster, assetId, output):
     map_.addLayer(outline, {'palette': '283593'}, 'aoi')
     map_.zoom_ee_object(aoi.geometry())
     
-    su.displayIO(output, 'Mspa process complete', 'success')
+    output.add_live_msg('Mspa process complete', 'success')
     
     return map_
 
@@ -104,7 +103,7 @@ def getTable(stat_file):
     #open and read the file 
     with open(stat_file, "r") as f:
         text = f.read()
-     
+    
     #split lines
     text = text.split('\n')
     
