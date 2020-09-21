@@ -11,6 +11,6 @@ You can download these two files directly from the interface using the green but
 ![export](./img/export.png)
 
 ---
-[ go to  &rarr; 4. Run MSPA analysis](./export.md)  
+[ go to  &rarr; 4. Run MSPA analysis](./mspa_mask.md)  
 
 [return &larr; to 2. GFC visualization](./gfc_viz.md) 
