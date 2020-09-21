@@ -1,7 +1,3 @@
-# Forest change mask
-
-## About
-
 Base Forest mask and Fragmentation tool 
 
 This application allows the user to:

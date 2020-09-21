@@ -342,7 +342,7 @@ def mspaAnalysis(
         }
         with subprocess.Popen(**kwargs) as p:
             for line in p.stdout:
-                su.displayIO(output, line)
+                output.add_live_msg(line)
     
         #copy result tif file in gfc 
         mspa_tmp_map = mspa_output_dir + 'input_' + mspa_param_name + '.tif'
