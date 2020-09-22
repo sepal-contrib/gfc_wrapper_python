@@ -304,11 +304,6 @@ def mspaAnalysis(
         #convert to bin_map
         bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
     
-        #get the init file proj system 
-        #src = gdal.Open(clip_map)
-        #proj = osr.SpatialReference(wkt=src.GetProjection())
-        #src = None
-    
         #copy the script folder in tmp 
         copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
     
@@ -353,9 +348,9 @@ def mspaAnalysis(
     
         shutil.copyfile(mspa_tmp_map, mspa_map)
     
-        #compress map
-        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326')
-        os.remove(mspa_map)
+        #compress map (the dst_nodata has been added to avoid lateral bands when projecting as 0 is not the mspa no-data value)
+        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326', dstNodata=129)
+        #os.remove(mspa_map)
     
         #copy result txt file in gfc
         mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
