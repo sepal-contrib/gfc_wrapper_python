@@ -52,7 +52,10 @@ def fragmentationMap(raster, assetId, output):
     
     map_ = sm.SepalMap()
 
+    #read the raster file
     ds = gdal.Open(raster)
+    
+    #extract the color palette 
     band = ds.GetRasterBand(1)
     min_, max_ = band.ComputeRasterMinMax()
     min_, max_ = int(min_), int(max_)
