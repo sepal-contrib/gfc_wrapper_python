@@ -52,6 +52,12 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         
         #zoom on the aoi
         m.zoom_ee_object(aoi.geometry())
+        
+        #empty all the previous gfc masks 
+        for i in range (100):
+            layer = m.find_layer('gfc_{}'.format(i+1))
+            if layer:
+                m.remove_layer(layer)
     
     #add the values to the map
     layer_name = 'gfc_{}'.format(threshold)
