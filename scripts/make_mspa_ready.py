@@ -7,7 +7,8 @@ import ipyvuetify as v
 import gdal
 from sepal_ui import mapping as sm
 import ee 
-from matplotlib.colors import ListedColormap, to_hex
+from matplotlib.colors import ListedColormap, to_hex, to_rgba
+from matplotlib import pyplot as plt
 import numpy as np
 
 ee.Initialize()
@@ -130,5 +131,41 @@ def getTable(stat_file):
     
     return table
     
+def export_legend(filename):
+    
+    #create a color list
+    color_map = []
+    for index in pm.mspa_colors: 
+        color_map.append([val/255 for val in list(pm.mspa_colors[index])])
 
+    columns = ['entry']
+    rows = [' '*10 for index in pm.mspa_colors] #trick to see the first column
+    cell_text = [[index] for index in pm.mspa_colors]
+
+    fig, ax = plt.subplots(1,1)
+
+    #remove the graph box
+    ax.axis('tight')
+    ax.axis('off')
+
+    #set the tab title
+    ax.set_title('Raster legend')
+
+    #create the table
+    the_table = ax.table(
+        colColours=[to_rgba('lightgrey')],
+        cellText=cell_text,
+        rowLabels=rows,
+        colWidths=[.4],
+        rowColours=color_map,
+        colLabels=columns,
+        loc='center'
+    )
+    the_table.scale(1, 1.5)
+
+    #save &close
+    plt.savefig(filename)
+    plt.close()
+    
+    return
 

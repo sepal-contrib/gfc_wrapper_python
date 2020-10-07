@@ -87,6 +87,18 @@ mspa_colors = {
     'no-data': [255, 255, 255, 255],
 }
 
+def get_gfc_colors():
+    
+    gfc_colors = {}
+    for i in range(1, getMaxYear()+1):
+        gfc_colors['{} loss'.format(2000+i)] = colors.to_rgba(utils.colorFader(i))
+    gfc_colors['non forest'] = colors.to_rgba('lightgrey')
+    gfc_colors['forest'] = colors.to_rgba('darkgreen')
+    gfc_colors['gains'] = colors.to_rgba('lightgreen')
+    gfc_colors['gain + loss'] = colors.to_rgba('purple')
+    
+    return gfc_colors
+
 def getMyClasses():
     
     years = [i for i in range (1, getMaxYear()+1)]

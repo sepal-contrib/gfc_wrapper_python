@@ -137,6 +137,7 @@ def gfcExport(assetId, threshold, output):
     #skip if output already exist 
     output.add_live_msg('Creating the map')
     clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
+    clip_legend = pm.getGfcDir() + aoi_name + '_{}_gfc_legend.pdf'.format(threshold)
     
     if os.path.isfile(clip_map):
         output.add_live_msg('Gfc map threshold already performed', 'success')
@@ -194,6 +195,9 @@ def gfcExport(assetId, threshold, output):
         os.remove(color_table)
         os.remove(tmp_clip_map)
         
+        #create the legend 
+        ca.export_legend(clip_legend)
+        
         #compress
         gdal.Translate(clip_map, tmp_pct_clip_map, creationOptions=['COMPRESS=LZW'])
         os.remove(tmp_pct_clip_map)
@@ -249,12 +253,14 @@ def gfcExport(assetId, threshold, output):
     #create the links
     gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path=csv_file)
     gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path=clip_map)
+    gfc_download_pdf = wf.DownloadBtn('GFC legend in .pdf', path=clip_legend)
     
     #create the display
     children = [ 
         v.Layout(Row=True, children=[
             gfc_download_csv,
             gfc_download_tif,
+            gfc_download_pdf
         ]),
         partial_layout
     ]
@@ -298,8 +304,11 @@ def mspaAnalysis(
         threshold, 
         mspa_param_name
     )
-    
     mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
+        threshold, 
+        mspa_param_name
+    )
+    mspa_legend = pm.getGfcDir() + aoi_name + '{}_{}_mspa_legend.pdf'.format(
         threshold, 
         mspa_param_name
     )
@@ -356,7 +365,7 @@ def mspaAnalysis(
     
         #compress map (the dst_nodata has been added to avoid lateral bands when projecting as 0 is not the mspa no-data value)
         gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326', dstNodata=129)
-        #os.remove(mspa_map)
+        os.remove(mspa_map)
     
         #copy result txt file in gfc
         mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
@@ -372,15 +381,16 @@ def mspaAnalysis(
     #create the output 
     table = mmr.getTable(mspa_stat)
     fragmentation_map = mmr.fragmentationMap(mspa_map_proj, assetId, output)
-    paths = [mspa_stat, mspa_map_proj]
+    mmr.export_legend(mspa_legend)
     
     ######################################
     #####     create the layout        ###
     ######################################
     
     #create the links
-    gfc_download_txt = wf.DownloadBtn('MSPA stats in .txt', path=paths[0])
-    gfc_download_tif = wf.DownloadBtn('MSPA raster in .tif', path=paths[1])
+    gfc_download_txt = wf.DownloadBtn('MSPA stats in .txt', path=mspa_stat)
+    gfc_download_tif = wf.DownloadBtn('MSPA raster in .tif', path=mspa_map_proj)
+    gfc_download_pdf = wf.DownloadBtn('MSPA legend in .pdf', path=mspa_legend)
     
     #create the partial layout 
     partial_layout = v.Layout(
@@ -398,6 +408,7 @@ def mspaAnalysis(
         v.Layout(Row=True, children=[
             gfc_download_txt,
             gfc_download_tif,
+            gfc_download_pdf
         ]),
         partial_layout
     ]

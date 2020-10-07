@@ -11,6 +11,8 @@ from utils import parameters as pm
 from pathlib import Path
 import subprocess
 from pyproj import CRS
+from matplotlib.colors import to_rgba
+from matplotlib import pyplot as plt
 
 ee.Initialize()
 
@@ -151,3 +153,41 @@ def compute_ee_map(assetId, threshold):
     gfc = clip_dataset.expression(calc,bands)
     
     return gfc.select('gfc')
+
+def export_legend(filename):
+    
+    #create a color list
+    color_map = []
+    for index in pm.get_gfc_colors(): 
+        color_map.append([val for val in list(pm.get_gfc_colors()[index])])
+
+    columns = ['entry']
+    rows = [' '*10 for index in pm.get_gfc_colors()] #trick to see the first column
+    cell_text = [[index] for index in pm.get_gfc_colors()]
+
+    fig, ax = plt.subplots(1,1, figsize=[6.4, 8.6])
+
+    #remove the graph box
+    ax.axis('tight')
+    ax.axis('off')
+
+    #set the tab title
+    ax.set_title('Raster legend')
+
+    #create the table
+    the_table = ax.table(
+        colColours=[to_rgba('lightgrey')],
+        cellText=cell_text,
+        rowLabels=rows,
+        colWidths=[.4],
+        rowColours=color_map,
+        colLabels=columns,
+        loc='center'
+    )
+    the_table.scale(1, 1.5)
+
+    #save &close
+    plt.savefig(filename)
+    plt.close()
+    
+    return
