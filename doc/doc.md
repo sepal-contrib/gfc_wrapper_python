@@ -1,6 +1,6 @@
 # Welcome in the user documentation 
 
-This documentation should explain every step to execute the module. If any question or bug remains, please consider post it on the [bug report page](https://github.com/12rambau/gfc_wrapper_python/issues)
+This documentation should explain every step to execute the module. If any question or bug remains, please consider post it on the [bug report page](https://github.com/openforis/gfc_wrapper_python/issues)
 
 ## Before starting 
 This module will require the user to register to GEE instead of using the public SEPAL account. Follow this [link](https://earthengine.google.com) to create a GEE account. Once done, select your GEE account in the SEPAL bottom right corner and use your personal credentials. 
