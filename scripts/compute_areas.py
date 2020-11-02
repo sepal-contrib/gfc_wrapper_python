@@ -50,7 +50,7 @@ def create_hist_ee(ee_map, assetId, output):
     row_list = []
     geom = ee.FeatureCollection(assetId).geometry()
     for index, code in enumerate(pm.getCodes()):
-        su.displayIO(output, 'computing ' + label[index])
+        output.add_live_msg('computing ' + label[index])
         code = int(code)
         mask = ee_map.eq(code)
         mask_surface = mask.multiply(ee.Image.pixelArea())

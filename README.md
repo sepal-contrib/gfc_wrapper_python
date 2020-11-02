@@ -45,7 +45,7 @@ to install the project on your SEPAL account
 $ git clone https://github.com/12rambau/gfc_wrapper_python.git
 ```
 
-please retreive the develop branch where all our development live
+please retrieve the develop branch where all our developments live
 ```
 $ git checkout --track origin/develop
 ```

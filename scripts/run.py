@@ -5,7 +5,7 @@ import pandas as pd
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
-from sepal_ui import widgetFactory as wf
+from sepal_ui import sepalwidgets as sw
 import geemap
 import ee
 import matplotlib as mpl
@@ -251,9 +251,9 @@ def gfcExport(assetId, threshold, output):
     )
     
     #create the links
-    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path=csv_file)
-    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path=clip_map)
-    gfc_download_pdf = wf.DownloadBtn('GFC legend in .pdf', path=clip_legend)
+    gfc_download_csv = sw.DownloadBtn('GFC hist values in .csv', path=csv_file)
+    gfc_download_tif = sw.DownloadBtn('GFC raster in .tif', path=clip_map)
+    gfc_download_pdf = sw.DownloadBtn('GFC legend in .pdf', path=clip_legend)
     
     #create the display
     children = [ 
@@ -388,9 +388,9 @@ def mspaAnalysis(
     ######################################
     
     #create the links
-    gfc_download_txt = wf.DownloadBtn('MSPA stats in .txt', path=mspa_stat)
-    gfc_download_tif = wf.DownloadBtn('MSPA raster in .tif', path=mspa_map_proj)
-    gfc_download_pdf = wf.DownloadBtn('MSPA legend in .pdf', path=mspa_legend)
+    gfc_download_txt = sw.DownloadBtn('MSPA stats in .txt', path=mspa_stat)
+    gfc_download_tif = sw.DownloadBtn('MSPA raster in .tif', path=mspa_map_proj)
+    gfc_download_pdf = sw.DownloadBtn('MSPA legend in .pdf', path=mspa_legend)
     
     #create the partial layout 
     partial_layout = v.Layout(

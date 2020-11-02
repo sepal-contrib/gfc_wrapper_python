@@ -11,7 +11,7 @@ There you can select a country name in the list provided. They correspond to eve
 
 After validating your country, the map will zoom on the country you've validated and will create an aoi_[country_code] asset on your GEE account. It will be available for other projects.
 
-> :warning: The output can select the wrong country, before validating your selection please verify in the blue alert that the `selected country` is the one you want to use. If wrong try to select it again.
+> :warning: The output can select the wrong country, before validating your selection please verify in the blue alert that the `selected country` is the one you want to use. If wrong, try to select it again.
 
 ![country boundaries](./img/country_boundaries.png) 
 
@@ -25,7 +25,7 @@ Once you have selected `draw a shape` in the dropdown, two new input will appear
  
  The drawing tool on the map allows you to draw shapes (rectangles, polygons and circle) 
  
- > :warning: Multiple geometries could lead to various bug or crash. If needed please consider running your analysis in two steps
+ > :warning: Multiple geometries could lead to various bug or crash. If needed, please consider running your analysis in two steps
  
 After validating your shape, the map will zoom on the AOI you've validated and will create an aoi_[filename] asset on your GEE account. It will be available for other projects.
 
