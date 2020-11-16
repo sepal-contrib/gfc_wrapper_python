@@ -16,7 +16,7 @@ def wait_for_completion(task_descripsion, widget_alert):
     """
     state = 'UNSUBMITTED'
     while state != 'COMPLETED':
-        su.displayIO(widget_alert, ms.STATUS.format(state))
+        widget_alert.add_live_msg(ms.STATUS.format(state))
         time.sleep(5)
                     
         #search for the task in task_list
