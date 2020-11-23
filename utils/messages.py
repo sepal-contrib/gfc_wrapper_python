@@ -14,9 +14,9 @@ GFC_TXT = """
 Considering the Aoi selected in step 1 and the threshold selected in step 2 the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold. It will live in a ~/gfc_wrapper_results folder of your sepal environment.  
 2 results will be produced:  
   
-- the map of the forest change mask using the color tab presented in the interactive maps (.tif)
-- the legend of the raster (.pdf)
-- the distribution of each defined zone (.csv)
+- the map of the forest change mask using the color tab presented in the interactive maps (`.tif`)
+- the legend of the raster (`.pdf`)
+- the distribution of each defined zone (`.csv`)
 """
 
 
