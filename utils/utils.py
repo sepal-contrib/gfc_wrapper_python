@@ -79,4 +79,6 @@ def pixelCount(raster):
 def toHectar(x, resx, resy):
     """convert a pixel number into a surface in hectar using the provided resolution (res in meters)"""
     return x*resx*resy/10000
+    
+    
 

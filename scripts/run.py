@@ -1,12 +1,11 @@
-from sepal_ui.scripts import utils as su
-from sepal_ui.scripts import mapping as sm
+from sepal_ui import mapping as sm
 import time
 import subprocess
 import pandas as pd
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
-from sepal_ui import widgetFactory as wf
+from sepal_ui import sepalwidgets as sw
 import geemap
 import ee
 import matplotlib as mpl
@@ -20,7 +19,6 @@ from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
 from gfc_wrapper_python.utils import gdrive
 from gfc_wrapper_python.utils import gee
-from gfc_wrapper_python.utils import mapping
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
 from distutils.dir_util import copy_tree
@@ -28,18 +26,18 @@ from distutils.dir_util import copy_tree
 
 ee.Initialize()
 
-def displayGfcMap(assetId, threshold, m, viz, output):
+def displayGfcMap(aoi_io, threshold, m, viz, output):
     
-    su.displayIO(output, 'Loading tiles')
+    output.add_live_msg('Loading tiles')
     
     #use aoi_name 
-    aoi_name = gfc_utils.get_aoi_name(assetId)
+    aoi_name = aoi_io.get_aoi_name()
     
     #load the gfc map
-    gfc_map = ca.compute_ee_map(assetId, threshold)
+    gfc_map = ca.compute_ee_map(aoi_io, threshold)
     
     #load the aoi 
-    aoi = ee.FeatureCollection(assetId)
+    aoi = aoi_io.get_aoi_ee()
     
     if not viz:
         #Create an empty image into which to paint the features, cast to byte.
@@ -53,10 +51,16 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         m.addLayer(outline, {'palette': '283593'}, 'aoi')
         
         #zoom on the aoi
-        m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+        m.zoom_ee_object(aoi.geometry())
+        
+        #empty all the previous gfc masks 
+        for i in range (100):
+            layer = m.find_layer(f'gfc_{i+1}')
+            if layer:
+                m.remove_layer(layer)
     
     #add the values to the map
-    layer_name = 'gfc_{}'.format(threshold)
+    layer_name = f'gfc_{threshold}'
     if not m.find_layer(layer_name):
         m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, layer_name)
         message = 'Tiles loaded'
@@ -64,36 +68,37 @@ def displayGfcMap(assetId, threshold, m, viz, output):
         message = "Tiles were already on the map"
         
     
-    su.displayIO(output, message, 'success')
+    output.add_live_msg(message, 'success')
     
     return
      
-def displayGfcHist(assetId, threshold, output):
+def displayGfcHist(aoi_io, threshold, output):
     
     
     ###############################
     ##   reload the tiles        ##
     ###############################
     
-    su.displayIO(output, 'Loading tiles')
+    output.add_live_msg('Loading tiles')
     
     #use aoi_name 
-    aoi_name = gfc_utils.get_aoi_name(assetId)
+    aoi_name = aoi_io.get_aoi_name()
     
     #load the gfc map
-    gfc_map = ca.compute_ee_map(assetId, threshold)
+    gfc_map = ca.compute_ee_map(aoi_io, threshold)
     
-    su.displayIO(output, 'Tiles loaded', 'success')
+    
+    output.add_live_msg('Tiles loaded', 'success')
     
     
     ##########################
     ##     compute hist     ##
     ##########################
     
-    su.displayIO(output, 'Compute areas')
+    output.add_live_msg('Compute areas')
     
     #load the df
-    df = ca.create_hist_ee(gfc_map, assetId, output)
+    df = ca.create_hist_ee(gfc_map, aoi_io, output)
     
     #create an histogram of the losses
     fig = ca.plotLoss(df, aoi_name)
@@ -111,18 +116,18 @@ def displayGfcHist(assetId, threshold, output):
         ]
     )
          
-    su.displayIO(output, 'Areas computation finished', 'success')
+    output.add_live_msg('Areas computation finished', 'success')
     
     return partial_layout
 
-def gfcExport(assetId, threshold, output):
+def gfcExport(aoi_io, threshold, output):
     
     #use aoi_name
-    aoi_name = gfc_utils.get_aoi_name(assetId)
+    aoi_name = aoi_io.get_aoi_name()
     
     #load the map 
-    aoi = ee.FeatureCollection(assetId)
-    gfc_map = ca.compute_ee_map(assetId, threshold)
+    aoi = aoi_io.get_aoi_ee()
+    gfc_map = ca.compute_ee_map(aoi_io, threshold)
     
     
     ############################
@@ -130,13 +135,14 @@ def gfcExport(assetId, threshold, output):
     ############################
     
     #skip if output already exist 
-    su.displayIO(output, 'Creating the map')
-    clip_map = pm.getGfcDir() + aoi_name + '_{}_merged_gfc_map.tif'.format(threshold)
+    output.add_live_msg('Creating the map')
+    clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_merged_gfc_map.tif'
+    clip_legend = f'{pm.getGfcDir()}{aoi_name}_{threshold}_gfc_legend.pdf'
     
     if os.path.isfile(clip_map):
-        su.displayIO(output,'Gfc map threshold already performed', alert_type='success')
+        output.add_live_msg('Gfc map threshold already performed', 'success')
     else:
-        task_name = aoi_name + '_{}_gfc_map'.format(threshold)
+        task_name = f'{aoi_name}_{threshold}_gfc_map'
         
         #launch the gee task
         drive_handler = gdrive.gdrive()
@@ -146,7 +152,7 @@ def gfcExport(assetId, threshold, output):
                 'image':gfc_map,
                 'description':task_name,
                 'scale': 30,
-                'region':ee.FeatureCollection(assetId).geometry(),
+                'region':aoi.geometry(),
                 'maxPixels': 1e12
             }
     
@@ -157,7 +163,7 @@ def gfcExport(assetId, threshold, output):
             gee.wait_for_completion(task_name, output)
             
             
-        su.displayIO(output, 'start downloading to Sepal')
+        output.add_live_msg('start downloading to Sepal')
         
         #download to sepal
         files = drive_handler.get_files(task_name)
@@ -165,8 +171,8 @@ def gfcExport(assetId, threshold, output):
         
         #merge the tiles together 
         #create command
-        tmp_clip_map = pm.getGfcDir() + aoi_name + '_{}_tmp_merged_gfc_map.tif'.format(threshold)
-        file_pattern = pm.getGfcDir() + task_name + '*.tif'
+        tmp_clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_tmp_merged_gfc_map.tif'
+        file_pattern = f'{pm.getGfcDir()}{task_name}*.tif'
         command = [
             'gdal_merge.py',
             '-o', tmp_clip_map,
@@ -176,44 +182,47 @@ def gfcExport(assetId, threshold, output):
         os.system(' '.join(command))
         
         #add the color_palette
+        tmp_pct_clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_tmp_pct.tif'
         color_table = pm.getColorTable()
         command = [
             '(echo {})'.format(color_table),
             '|',
             'oft-addpct.py',
             tmp_clip_map,
-            clip_map
+            tmp_pct_clip_map
         ]
         os.system(' '.join(command))
-        
-        #delete the tmp_files
-        file_list = []
-        for file in glob.glob(file_pattern):
-            file_list.append(file)
-        
-        for file in file_list:
-            os.remove(file)
-        
         os.remove(color_table)
         os.remove(tmp_clip_map)
+        
+        #create the legend 
+        ca.export_legend(clip_legend)
+        
+        #compress
+        gdal.Translate(clip_map, tmp_pct_clip_map, creationOptions=['COMPRESS=LZW'])
+        os.remove(tmp_pct_clip_map)
+        
+        #delete the tmp_files
+        for file in glob.glob(file_pattern):
+            os.remove(file)
+            
+    output.add_live_msg('Downloaded to Sepal', 'success')
     
-    su.displayIO(output, 'Downloaded to Sepal', 'success')
     
-    
-    su.displayIO(output, 'Create histogram')
+    output.add_live_msg('Create histogram')
     
     ############################
     ###    create txt file   ###
     ############################
     
-    csv_file = pm.getStatDir() + aoi_name + '_{}_gfc_stat.csv'.format(threshold)
-    hist = ca.create_hist(clip_map, assetId, output)
+    csv_file = f'{pm.getStatDir()}{aoi_name}_{threshold}_gfc_stat.csv'
+    hist = ca.create_hist(clip_map, output)
     
     if os.path.isfile(csv_file):
-        su.displayIO(output,'histogram already created', alert_type='success')
+        output.add_live_msg('histogram already created', 'success')
     else:
         hist.to_csv(csv_file, index=False)
-        su.displayIO(output, 'Histogram created', 'success')
+        output.add_live_msg('Histogram created', 'success')
         
     #################################
     ###    create sum-up layout   ###
@@ -223,8 +232,9 @@ def gfcExport(assetId, threshold, output):
     
     table = ca.areaTable(hist)
     
-    m = mapping.init_gfc_map()
-    m.centerObject(ee.FeatureCollection(assetId), zoom=sm.update_zoom(assetId))
+    m = sm.SepalMap()
+    m.add_legend(legend_keys=pm.getMyLabel(), legend_colors=pm.getColorPalette(), position='topleft')
+    m.zoom_ee_object(aoi.geometry())
     m.addLayer(gfc_map.sldStyle(pm.getSldStyle()), {}, 'gfc')
     outline = ee.Image().byte().paint(featureCollection=aoi, color=1, width=3)
     m.addLayer(outline, {'palette': '283593'}, 'aoi')
@@ -241,26 +251,28 @@ def gfcExport(assetId, threshold, output):
     )
     
     #create the links
-    gfc_download_csv = wf.DownloadBtn('GFC hist values in .csv', path=csv_file)
-    gfc_download_tif = wf.DownloadBtn('GFC raster in .tif', path=clip_map)
+    gfc_download_csv = sw.DownloadBtn('GFC hist values in .csv', path=csv_file)
+    gfc_download_tif = sw.DownloadBtn('GFC raster in .tif', path=clip_map)
+    gfc_download_pdf = sw.DownloadBtn('GFC legend in .pdf', path=clip_legend)
     
     #create the display
     children = [ 
         v.Layout(Row=True, children=[
             gfc_download_csv,
             gfc_download_tif,
+            gfc_download_pdf
         ]),
         partial_layout
     ]
          
-    su.displayIO(output, 'Export complete', 'success')
+    output.add_live_msg('Export complete', 'success')
     
 
     return (clip_map, csv_file, children)
 
 def mspaAnalysis(
     clip_map, 
-    assetId, 
+    aoi_io, 
     threshold, 
     foreground_connectivity, 
     edge_width, 
@@ -271,7 +283,7 @@ def mspaAnalysis(
 ):
     
     #aoi name
-    aoi_name = gfc_utils.get_aoi_name(assetId)
+    aoi_name = aoi_io.get_aoi_name()
     
     #link the parameters
     mspa_param = [
@@ -285,29 +297,18 @@ def mspaAnalysis(
     #remove the stats parameter for naming 
     mspa_param_name = '_'.join(mspa_param[:-1])
     
-    su.displayIO(output, 'Run mspa with "{}" inputs'.format('_'.join(mspa_param)))
+    output.add_live_msg(f'Run mspa with "{"_".join(mspa_param)}" inputs')
     
     #check if file already exist
-    mspa_map_proj = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map.tif'.format(
-        threshold, 
-        mspa_param_name
-    )
-    
-    mspa_stat = pm.getStatDir() + aoi_name + '{}_{}_mspa_stat.txt'.format(
-        threshold, 
-        mspa_param_name
-    )
+    mspa_map_proj = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_map.tif'
+    mspa_stat = f'{pm.getStatDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_stat.txt'
+    mspa_legend = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_legend.pdf'
     
     if os.path.isfile(mspa_map_proj):
-        su.displayIO(output, 'Mspa map already ready', alert_type='success')
+        output.add_live_msg('Mspa map already ready', 'success')
     else:
         #convert to bin_map
-        bin_map = mmr.make_mspa_ready(assetId, threshold, clip_map)
-    
-        #get the init file proj system 
-        src = gdal.Open(clip_map)
-        proj = osr.SpatialReference(wkt=src.GetProjection())
-        src = None
+        bin_map = mmr.make_mspa_ready(aoi_io.get_aoi_name(), threshold, clip_map)
     
         #copy the script folder in tmp 
         copy_tree(pm.getMspaDir(), pm.getTmpMspaDir())
@@ -342,26 +343,23 @@ def mspaAnalysis(
         }
         with subprocess.Popen(**kwargs) as p:
             for line in p.stdout:
-                su.displayIO(output, line)
+                output.add_live_msg(line)
     
         #copy result tif file in gfc 
-        mspa_tmp_map = mspa_output_dir + 'input_' + mspa_param_name + '.tif'
-        mspa_map = pm.getGfcDir() + aoi_name + '_{}_{}_mspa_map_tmp.tif'.format(
-            threshold, 
-            mspa_param_name
-        )
+        mspa_tmp_map = f'{mspa_output_dir}input_{mspa_param_name}.tif'
+        mspa_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_map_tmp.tif'
     
         shutil.copyfile(mspa_tmp_map, mspa_map)
     
-        #add projection
-        options = gdal.TranslateOptions(outputSRS=proj)
-        gdal.Translate(mspa_map_proj, mspa_map, options=options)
+        #compress map (the dst_nodata has been added to avoid lateral bands when projecting as 0 is not the mspa no-data value)
+        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326', dstNodata=129)
+        os.remove(mspa_map)
     
         #copy result txt file in gfc
-        mspa_tmp_stat = mspa_output_dir + 'input_' + mspa_param_name + '_stat.txt'
+        mspa_tmp_stat = f'{mspa_output_dir}input_{mspa_param_name}_stat.txt'
         shutil.copyfile(mspa_tmp_stat, mspa_stat)
         
-        su.displayIO(output, 'Mspa map complete', alert_type='success') 
+        output.add_live_msg('Mspa map complete', 'success') 
         
         ###################### end of mspa process
     
@@ -370,16 +368,17 @@ def mspaAnalysis(
     
     #create the output 
     table = mmr.getTable(mspa_stat)
-    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, output)
-    paths = [mspa_stat, mspa_map_proj]
+    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, aoi_io, output)
+    mmr.export_legend(mspa_legend)
     
     ######################################
     #####     create the layout        ###
     ######################################
     
     #create the links
-    gfc_download_txt = wf.DownloadBtn('MSPA stats in .txt', path=paths[0])
-    gfc_download_tif = wf.DownloadBtn('MSPA raster in .tif', path=paths[1])
+    gfc_download_txt = sw.DownloadBtn('MSPA stats in .txt', path=mspa_stat)
+    gfc_download_tif = sw.DownloadBtn('MSPA raster in .tif', path=mspa_map_proj)
+    gfc_download_pdf = sw.DownloadBtn('MSPA legend in .pdf', path=mspa_legend)
     
     #create the partial layout 
     partial_layout = v.Layout(
@@ -397,6 +396,7 @@ def mspaAnalysis(
         v.Layout(Row=True, children=[
             gfc_download_txt,
             gfc_download_tif,
+            gfc_download_pdf
         ]),
         partial_layout
     ]
