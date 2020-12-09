@@ -1,19 +1,24 @@
-from sepal_ui import mapping as sm
 import time
 import subprocess
+import shutil
+import glob
+from distutils.dir_util import copy_tree
+
 import pandas as pd
+import geemap
+import ee
 from bqplot import *
 from bqplot import pyplot as plt
 import ipyvuetify as v
 from sepal_ui import sepalwidgets as sw
-import geemap
-import ee
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import shutil
-import glob
-import gdal
-from osgeo import osr
+import rasterio as rio
+from rasterio.merge import merge
+from rasterio.warp import reproject, calculate_default_transform as cdt, Resampling
+import pyproj
+
+from sepal_ui import mapping as sm
 
 from scripts import make_mspa_ready as mmr
 from scripts import compute_areas as ca
@@ -21,7 +26,6 @@ from gfc_wrapper_python.utils import gdrive
 from gfc_wrapper_python.utils import gee
 from gfc_wrapper_python.utils import parameters as pm
 from gfc_wrapper_python.utils import utils as gfc_utils
-from distutils.dir_util import copy_tree
 
 
 ee.Initialize()
@@ -110,10 +114,7 @@ def displayGfcHist(aoi_io, threshold, output):
     partial_layout = v.Flex(
         xs12=True,
         class_='pa-0 mt-5', 
-        children=[
-            table, 
-            fig
-        ]
+        children=[table, fig]
     )
          
     output.add_live_msg('Areas computation finished', 'success')
@@ -141,11 +142,13 @@ def gfcExport(aoi_io, threshold, output):
     
     if os.path.isfile(clip_map):
         output.add_live_msg('Gfc map threshold already performed', 'success')
+        
     else:
         task_name = f'{aoi_name}_{threshold}_gfc_map'
         
         #launch the gee task
         drive_handler = gdrive.gdrive()
+        
         if drive_handler.get_files(task_name) == []:
             #launch the exportation of the map
             task_config = {
@@ -162,52 +165,47 @@ def gfcExport(aoi_io, threshold, output):
             #wait for the task 
             gee.wait_for_completion(task_name, output)
             
-            
         output.add_live_msg('start downloading to Sepal')
         
         #download to sepal
         files = drive_handler.get_files(task_name)
         drive_handler.download_files(files, pm.getGfcDir())
         
-        #merge the tiles together 
-        #create command
+        #merge the tiles together
         tmp_clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_tmp_merged_gfc_map.tif'
         file_pattern = f'{pm.getGfcDir()}{task_name}*.tif'
-        command = [
-            'gdal_merge.py',
-            '-o', tmp_clip_map,
-            '-v', '-co', '"COMPRESS=LZW"',
-        ]
-        command += glob.glob(file_pattern)
-        os.system(' '.join(command))
         
-        #add the color_palette
-        tmp_pct_clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_tmp_pct.tif'
-        color_table = pm.getColorTable()
-        command = [
-            '(echo {})'.format(color_table),
-            '|',
-            'oft-addpct.py',
-            tmp_clip_map,
-            tmp_pct_clip_map
-        ]
-        os.system(' '.join(command))
-        os.remove(color_table)
-        os.remove(tmp_clip_map)
+        src_files_to_mosaic = []
+        for fp in glob.glob(file_pattern):
+            src = rio.open(fp)
+            src_files_to_mosaic.append(src)
+            
+        mosaic, out_trans = merge(src_files_to_mosaic)
         
-        #create the legend 
-        ca.export_legend(clip_legend)
-        
-        #compress
-        gdal.Translate(clip_map, tmp_pct_clip_map, creationOptions=['COMPRESS=LZW'])
-        os.remove(tmp_pct_clip_map)
+        out_meta = src_files_to_mosaic[0].meta.copy()
+
+        # Update the metadata
+        out_meta.update({
+            "driver": "GTiff",
+            "height": mosaic.shape[1],
+            "width": mosaic.shape[2],
+            "transform": out_trans,
+            "compress":"lzw"
+        })
+            
+        with rio.open(clip_map, 'w', **out_meta) as dest:
+            
+            dest.write(mosaic)
+            dest.write_colormap(1, pm.getColorTable())
+            
+        for f in src_files_to_mosaic:
+            f.close()
         
         #delete the tmp_files
         for file in glob.glob(file_pattern):
             os.remove(file)
             
     output.add_live_msg('Downloaded to Sepal', 'success')
-    
     
     output.add_live_msg('Create histogram')
     
@@ -300,11 +298,11 @@ def mspaAnalysis(
     output.add_live_msg(f'Run mspa with "{"_".join(mspa_param)}" inputs')
     
     #check if file already exist
-    mspa_map_proj = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_map.tif'
+    mspa_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_map.tif'
     mspa_stat = f'{pm.getStatDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_stat.txt'
     mspa_legend = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_legend.pdf'
     
-    if os.path.isfile(mspa_map_proj):
+    if os.path.isfile(mspa_map):
         output.add_live_msg('Mspa map already ready', 'success')
     else:
         #convert to bin_map
@@ -347,13 +345,17 @@ def mspaAnalysis(
     
         #copy result tif file in gfc 
         mspa_tmp_map = f'{mspa_output_dir}input_{mspa_param_name}.tif'
-        mspa_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_{mspa_param_name}_mspa_map_tmp.tif'
-    
-        shutil.copyfile(mspa_tmp_map, mspa_map)
-    
-        #compress map (the dst_nodata has been added to avoid lateral bands when projecting as 0 is not the mspa no-data value)
-        gdal.Warp(mspa_map_proj, mspa_map, creationOptions=['COMPRESS=LZW'], dstSRS='EPSG:4326', dstNodata=129)
-        os.remove(mspa_map)
+        
+        # copy the file to result dir
+        # (the dst_nodata has been added to avoid lateral bands when projecting as 0 is not the mspa no-data value)
+        # reproject(mspa_tmp_map, mspa_map, 'EPSG:4326', 129)
+        with rio.open(mspa_tmp_map) as src:
+            kwargs = src.meta.copy()
+            kwargs.update(compress = 'lzw')
+            with rio.open(mspa_map, 'w', **kwargs) as dst:
+                dst.write(src.read())
+                dst.write_colormap(1, src.colormap(1))
+            
     
         #copy result txt file in gfc
         mspa_tmp_stat = f'{mspa_output_dir}input_{mspa_param_name}_stat.txt'
@@ -368,7 +370,7 @@ def mspaAnalysis(
     
     #create the output 
     table = mmr.getTable(mspa_stat)
-    fragmentation_map = mmr.fragmentationMap(mspa_map_proj, aoi_io, output)
+    fragmentation_map = mmr.fragmentationMap(mspa_map, aoi_io, output)
     mmr.export_legend(mspa_legend)
     
     ######################################
@@ -377,7 +379,7 @@ def mspaAnalysis(
     
     #create the links
     gfc_download_txt = sw.DownloadBtn('MSPA stats in .txt', path=mspa_stat)
-    gfc_download_tif = sw.DownloadBtn('MSPA raster in .tif', path=mspa_map_proj)
+    gfc_download_tif = sw.DownloadBtn('MSPA raster in .tif', path=mspa_map)
     gfc_download_pdf = sw.DownloadBtn('MSPA legend in .pdf', path=mspa_legend)
     
     #create the partial layout 
@@ -403,4 +405,47 @@ def mspaAnalysis(
     
     
     return children
+
+def reproject(src_file, dst_file, dst_crs, dst_nodata = None):
+    """reproject a file file into a desired crs"""
+    
+    if type(dst_crs) == str:
+        dst_crs = pyproj.crs.CRS.from_string(dst_crs)
+        
+    # reproject
+    with rio.open(src_file) as src:
+            transform, width, height = cdt(
+                src.crs, 
+                dst_crs, 
+                src.width, 
+                src.height, 
+                *src.bounds
+            )
+    
+            kwargs = src.meta.copy()
+            kwargs.update({
+                'crs': dst_crs,
+                'transform': transform,
+                'width': width,
+                'height': height,
+                'compress': 'lzw'
+            })
+            
+            if not dst_nodata:
+                dst_nodata = kwargs['nodata']
+
+            with rio.open(dst_file, 'w', **kwargs) as dst:
+                for i in range(1, src.count + 1):
+                    reproject(
+                        source=rio.band(src, i),
+                        destination=rio.band(dst, i),
+                        src_transform=src.transform,
+                        src_crs=src.crs,
+                        dst_transform=transform,
+                        dst_crs=dst_crs,
+                        dst_nodata=dst_nodata,
+                        resampling= Resampling.nearest
+                    )
+                dst.write_colormap(1, src.colormap(1))
+    return
     

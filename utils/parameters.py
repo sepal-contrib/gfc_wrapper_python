@@ -143,33 +143,23 @@ def getSldStyle():
     return sld_intervals
 
 def getColorTable():
+        
+    length = len(getMyClasses())
+    color_r = {}
+    color_g = {}
+    color_b = {}
+        
+    color_r[0], color_g[0], color_b[0] = colors.to_rgb('black') #no data
+    for i in range(1, getMaxYear()+1):
+        color_r[i], color_g[i], color_b[i] = colors.to_rgb(utils.colorFader(i))
+    color_r[30], color_g[30], color_b[30] = colors.to_rgb('lightgrey') #non forest
+    color_r[40], color_g[40], color_b[40] = colors.to_rgb('darkgreen') #forest
+    color_r[50], color_g[50], color_b[50] = colors.to_rgb('lightgreen') #gains
+    color_r[51], color_g[51], color_b[51] = colors.to_rgb('purple') #gain + loss
+        
+    color_table = { k:(int(color_r[k]*255), int(color_g[k]*255), int(color_b[k]*255), 255) for k in color_r.keys()}
     
-    pathname = getTmpDir() + 'color_table.txt'
-    
-    if not os.path.isfile(pathname):
-        
-        length = len(getMyClasses())
-        color_r = {}
-        color_g = {}
-        color_b = {}
-        
-        color_r[0], color_g[0], color_b[0] = colors.to_rgb('black') #no data
-        for i in range(1, getMaxYear()+1):
-            color_r[i], color_g[i], color_b[i] = colors.to_rgb(utils.colorFader(i))
-        color_r[30], color_g[30], color_b[30] = colors.to_rgb('lightgrey') #non forest
-        color_r[40], color_g[40], color_b[40] = colors.to_rgb('darkgreen') #forest
-        color_r[50], color_g[50], color_b[50] = colors.to_rgb('lightgreen') #gains
-        color_r[51], color_g[51], color_b[51] = colors.to_rgb('purple') #gain + loss
-        
-        color_r = [int(round(color_r[idx]*255)) for idx in color_r.keys()]
-        color_g = [int(round(color_g[idx]*255)) for idx in color_g.keys()]
-        color_b = [int(round(color_b[idx]*255)) for idx in color_b.keys()]
-        
-        color_table = pd.DataFrame({'classes':getMyClasses(), 'red': color_r, 'green': color_g, 'blue': color_b})
-        
-        color_table.to_csv(pathname, header=False, index=False, sep=' ')
-    
-    return pathname
+    return color_table
 
 def getColorPalette():
     hex_palette = []
