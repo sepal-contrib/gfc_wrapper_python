@@ -1,15 +1,16 @@
-from utils import parameters as pm
-from utils import utils
 import os
-from bqplot import *
-import ipywidgets as widgets
-import ipyvuetify as v
-import gdal
-from sepal_ui import mapping as sm
+
 import ee 
 from matplotlib.colors import ListedColormap, to_hex, to_rgba
 from matplotlib import pyplot as plt
 import numpy as np
+import rasterio as rio
+from bqplot import *
+import ipyvuetify as v
+from sepal_ui import mapping as sm
+
+from utils import parameters as pm
+from utils import utils
 
 ee.Initialize()
 
@@ -21,25 +22,21 @@ def make_mspa_ready(aoi_name, threshold, clip_map):
     if not os.path.isfile(mspa_masked_map):
     
         #create the forest mask for MSPA analysis
-        calc = '((A>0)*(A<40)+(A>40))*1' #non_forest <=> A != 40
-        calc += '+ (A==40)*2' #forest
-    
-        mspa_masked_tmp_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_mspa_tmp_map.tif'
-    
-        command = [
-            'gdal_calc.py',
-            '-A', clip_map,
-            '--co', '"COMPRESS=LZW"',
-            '--outfile={}'.format(mspa_masked_tmp_map),
-            '--calc="{}"'.format(calc),
-            '--type="Byte"'
-        ]
-    
-        os.system(' '.join(command))
-    
-        #compress
-        gdal.Translate(mspa_masked_map, mspa_masked_tmp_map, creationOptions=['COMPRESS=LZW'])
-        os.remove(mspa_masked_tmp_map)
+        with rio.open(clip_map) as src:
+        
+            out_meta = src.meta.copy()
+            out_meta.update(dtype=np.uint8)
+            raw_data = src.read()
+        
+            data = (
+                ((raw_data > 0) * (raw_data < 40) + (raw_data > 40)) * 1 # non_forest <=> A != 40
+                + (raw_data == 40) * 2 # forest
+                + raw_data * 0
+            )                
+            data = data.astype(out_meta['dtype'])
+                
+            with rio.open(mspa_masked_map, 'w', **out_meta) as dest:
+                dest.write(data)
     
     return mspa_masked_map
 
@@ -50,24 +47,20 @@ def fragmentationMap(raster, aoi_io, output):
     map_ = sm.SepalMap()
 
     #read the raster file
-    ds = gdal.Open(raster)
-    
-    #extract the color palette 
-    band = ds.GetRasterBand(1)
-    min_, max_ = band.ComputeRasterMinMax()
-    min_, max_ = int(min_), int(max_)
-    color_map = None
-    ct = band.GetRasterColorTable()
-
+    with rio.open(raster) as src:
+        data = src.read()
+        
+        min_ = int(np.amin(data[0]))
+        max_ = int(np.amax(data[0]))
+        ct = src.colormap(1)
+        
+        
     color_map = []
-    for index in range(min_, max_+1):
-        color = ct.GetColorEntry(index)
-    
-        #hide no-data: 
-        if list(color) == pm.mspa_colors['no-data']:
+    for i in range(min_, max_):
+        if list(ct[i]) == pm.mspa_colors['no-data']:
             color_map.append([.0, .0, .0, .0])
         else:
-            color_map.append([val/255 for val in list(color)])
+            color_map.append([val/255 for val in list(ct[i])])
 
     color_map = ListedColormap(color_map, N=max_)
 
