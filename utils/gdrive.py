@@ -81,9 +81,11 @@ class gdrive(object):
             fo.write(fh.getvalue())
             fo.close()
 
-    def delete_files(self, files_id):
+    def delete_files(self, files):
 
         service = self.service
         
-        for fId in files_id:
-            service.files().delete(fileId=fId).execute()
+        for f in files:
+            service.files().delete(fileId=f['id']).execute()
+            
+        return

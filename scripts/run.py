@@ -204,6 +204,9 @@ def gfcExport(aoi_io, threshold, output):
         for file in glob.glob(file_pattern):
             os.remove(file)
             
+        # delete the gdrive files 
+        drive_handler.delete_files(files)
+            
     output.add_live_msg('Downloaded to Sepal', 'success')
     
     output.add_live_msg('Create histogram')
