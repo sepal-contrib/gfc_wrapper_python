@@ -154,7 +154,7 @@ def compute_ee_map(aoi_io, threshold):
     
     gfc = clip_dataset.expression(calc,bands)
     
-    return gfc.select('gfc')
+    return gfc.select('gfc').uint8()
 
 def export_legend(filename):
     

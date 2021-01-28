@@ -17,6 +17,7 @@ import rasterio as rio
 from rasterio.merge import merge
 from rasterio.warp import reproject, calculate_default_transform as cdt, Resampling
 import pyproj
+import numpy as np
 
 from sepal_ui import mapping as sm
 
@@ -126,7 +127,7 @@ def gfcExport(aoi_io, threshold, output):
     #use aoi_name
     aoi_name = aoi_io.get_aoi_name()
     
-    #load the map 
+    # load the map 
     aoi = aoi_io.get_aoi_ee()
     gfc_map = ca.compute_ee_map(aoi_io, threshold)
     
@@ -135,7 +136,7 @@ def gfcExport(aoi_io, threshold, output):
     ###    create tif file   ###
     ############################
     
-    #skip if output already exist 
+    # skip if output already exist 
     output.add_live_msg('Creating the map')
     clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_merged_gfc_map.tif'
     clip_legend = f'{pm.getGfcDir()}{aoi_name}_{threshold}_gfc_legend.pdf'
@@ -146,11 +147,11 @@ def gfcExport(aoi_io, threshold, output):
     else:
         task_name = f'{aoi_name}_{threshold}_gfc_map'
         
-        #launch the gee task
+        # launch the gee task
         drive_handler = gdrive.gdrive()
         
         if drive_handler.get_files(task_name) == []:
-            #launch the exportation of the map
+            # launch the exportation of the map
             task_config = {
                 'image':gfc_map,
                 'description':task_name,
@@ -162,16 +163,16 @@ def gfcExport(aoi_io, threshold, output):
             task = ee.batch.Export.image.toDrive(**task_config)
             task.start()
             
-            #wait for the task 
+            # wait for the task 
             gee.wait_for_completion(task_name, output)
             
         output.add_live_msg('start downloading to Sepal')
         
-        #download to sepal
+        # download to sepal
         files = drive_handler.get_files(task_name)
         drive_handler.download_files(files, pm.getGfcDir())
         
-        #merge the tiles together
+        # merge the tiles together
         tmp_clip_map = f'{pm.getGfcDir()}{aoi_name}_{threshold}_tmp_merged_gfc_map.tif'
         file_pattern = f'{pm.getGfcDir()}{task_name}*.tif'
         
@@ -189,19 +190,17 @@ def gfcExport(aoi_io, threshold, output):
             "driver": "GTiff",
             "height": mosaic.shape[1],
             "width": mosaic.shape[2],
-            "transform": out_trans,
-            "compress":"lzw"
+            "transform": out_trans
         })
             
         with rio.open(clip_map, 'w', **out_meta) as dest:
-            
             dest.write(mosaic)
             dest.write_colormap(1, pm.getColorTable())
             
         for f in src_files_to_mosaic:
             f.close()
         
-        #delete the tmp_files
+        # delete the tmp_files
         for file in glob.glob(file_pattern):
             os.remove(file)
             
@@ -237,7 +236,7 @@ def gfcExport(aoi_io, threshold, output):
     outline = ee.Image().byte().paint(featureCollection=aoi, color=1, width=3)
     m.addLayer(outline, {'palette': '283593'}, 'aoi')
     
-    #create the partial layout 
+    # create the partial layout 
     partial_layout = v.Layout(
         Row=True,
         align_center=True,
@@ -248,12 +247,12 @@ def gfcExport(aoi_io, threshold, output):
         ]
     )
     
-    #create the links
+    # create the links
     gfc_download_csv = sw.DownloadBtn('GFC hist values in .csv', path=csv_file)
     gfc_download_tif = sw.DownloadBtn('GFC raster in .tif', path=clip_map)
     gfc_download_pdf = sw.DownloadBtn('GFC legend in .pdf', path=clip_legend)
     
-    #create the display
+    # create the display
     children = [ 
         v.Layout(Row=True, children=[
             gfc_download_csv,
