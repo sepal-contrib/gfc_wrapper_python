@@ -1,0 +1,21 @@
+{
+    "app": {
+        "title": "Time series",
+        "drawer_item": {
+            "about": "About"
+        }
+    },
+    "gee": {
+        "status": "Status: {}" 
+    },
+    "gfc": {
+        "map": "Click on \"Update map\" to visualize the data",
+        "hist": "Click on \"Compute areas\" to analyse the gfc data on your selected aoi. The process can take several minutes.",
+        "export": "Click on \"Export\" to export the data to your sepal folder. The process can take time.",
+        "msg": "Click on \"Export\" to export the data",
+        "no_threshold": "No threshold have been selected",
+        "no_aoi": "No aoi have been provided, select one in step 1",
+        "no_viz": "Before launching the export, it is strongly advised to vizualize data",
+        "txt": "Considering the Aoi selected in step 1 and the threshold selected in step 2 the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold. It will live in a ~/gfc_wrapper_results folder of your sepal environment.\n   2 results will be produced:\n  \n  - the map of the forest change mask using the color tab presented in the interactive maps (`.tif`) \n  - the legend of the raster (`.pdf`)\n  - the distribution of each defined zone (`.csv`)"
+    }
+}

@@ -1,9 +1,7 @@
 import ee
 import time
-import sys
-sys.path.append("..") # Adds higher directory to python modules path
-from sepal_ui.scripts import utils as su
-from utils import messages as ms
+
+from component.message import cm
 
 ee.Initialize()
 
@@ -16,7 +14,7 @@ def wait_for_completion(task_descripsion, widget_alert):
     """
     state = 'UNSUBMITTED'
     while state != 'COMPLETED':
-        widget_alert.add_live_msg(ms.STATUS.format(state))
+        widget_alert.add_live_msg(cm.gee.status.format(state))
         time.sleep(5)
                     
         #search for the task in task_list
