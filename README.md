@@ -13,7 +13,7 @@ This application allows the user to:
 
 ![example](./doc/img/full_viz.png)
 
-for more information about usage please read the [documentation](./doc/doc.md)
+for more information about usage please read the [documentation](https://docs.sepal.io/en/latest/modules/dwn/gfc_wrapper_python.html)
 
 ### Background info on GFC
 GFC provides global layers of information on tree cover and tree cover change since 2000, at 30m spatial resolution and consists of:
