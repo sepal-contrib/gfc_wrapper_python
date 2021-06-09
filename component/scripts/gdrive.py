@@ -76,10 +76,8 @@ class gdrive(object):
             while done is False:
                 status, done = downloader.next_chunk()
                 #print('Download %d%%.' % int(status.progress() * 100))
-            
-            fo = open(local_path+fId['name'], 'wb')
-            fo.write(fh.getvalue())
-            fo.close()
+            with (local_path/fId['name']).open('wb') as fo:
+                fo.write(fh.getvalue())
 
     def delete_files(self, files):
 
