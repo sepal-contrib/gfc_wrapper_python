@@ -1,5 +1,5 @@
-gfc_max_year = 19
-gfc_dataset = 'UMD/hansen/global_forest_change_2019_v1_7'
+gfc_max_year = 20
+gfc_dataset = 'UMD/hansen/global_forest_change_2020_v1_8'
 
 gfc_classes = [0] + [i for i in range(1, gfc_max_year + 1)] + [30,40,50,51]
 
