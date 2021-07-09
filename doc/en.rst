@@ -19,7 +19,7 @@ GFC provides global layers of information on tree cover and tree cover change si
 
 For more information please refer to:
 
--   `Hansen, M. C. et Al. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53.<https://science.sciencemag.org/content/342/6160/850>`_
+-   Hansen, M. C. et Al. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53.`<https://science.sciencemag.org/content/342/6160/850>`_
 -   University of Maryland, GFC `dataset <http://earthenginepartners.appspot.com/science-2013-global-forest>`_
 
 .. figure:: https://earthengine.google.com/static/images/hansen.jpg
