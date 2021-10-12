@@ -205,5 +205,10 @@ def gfc_export(aoi_model, threshold, alert):
     ]
 
     alert.add_live_msg("Export complete", "success")
+    alert.append_msg(
+        "The statistic computations are run in the World Mollweide (ESRI:54009) projection.",
+        True,
+        "success",
+    )
 
     return (clip_map, csv_file, children)
