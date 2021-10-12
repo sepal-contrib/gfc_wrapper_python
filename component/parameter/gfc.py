@@ -1,3 +1,4 @@
+gfc_min_year = 1
 gfc_max_year = 20
 gfc_dataset = "UMD/hansen/global_forest_change_2020_v1_8"
 

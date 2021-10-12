@@ -39,7 +39,7 @@ class ExportTile(sw.Tile):
 
         # retreive the data
         self.clip_map, csv_file, result_layout = cs.gfc_export(
-            self.aoi_model, self.model.threshold, self.alert
+            self.aoi_model, self.model, self.alert
         )
 
         self.result_tile.set_content(result_layout)

@@ -132,7 +132,12 @@ def area_table(df):
     return table
 
 
-def compute_ee_map(aoi_model, threshold):
+def compute_ee_map(aoi_model, model):
+
+    # load the model input
+    threshold = model.threshold
+    start = int(model.years[0] - 2000)
+    end = int(model.years[1] - 2000)
 
     # load the dataset and AOI
     dataset = ee.Image(cp.gfc_dataset)
@@ -142,13 +147,17 @@ def compute_ee_map(aoi_model, threshold):
     clip_dataset = dataset.clip(aoi)
 
     # create a composite band based on the user threshold
-    calc = "gfc = (A<={0})*((C==1)*50 + (C==0)*30) + "  # Non forest
-    calc += "(A>{0})*(C==1)*(B>0)*51 + "  # gain + loss
+    calc = "gfc = "
+    calc += "(A<={0})*(C==1)*50 + "  # gain
+    calc += "(A<={0})*(C==0)*30 + "  # Non forest
+    calc += "(A>{0})*(B<{1})*(B!=0)*30 + "  # non forest (ignore everything before start date)
+    calc += "(A>{0})*(B>{2})*(B!=0)*40 + "  # stable forest (ignore everything after end date)
+    calc += "(A>{0})*(C==1)*(B>={1})*(B<={2})*51 + "  # gain + loss
     calc += "(A>{0})*(C==1)*(B==0)*50 + "  # gain
-    calc += "(A>{0})*(C==0)*(B>0)*B + "  # loss
+    calc += "(A>{0})*(C==0)*(B>={1})*(B<={2})*B + "  # loss
     calc += "(A>{0})*(C==0)*(B==0)*40"  # stable forest
 
-    calc = calc.format(threshold)
+    calc = calc.format(threshold, start, end)
 
     bands = {
         "A": clip_dataset.select("treecover2000"),

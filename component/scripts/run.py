@@ -25,7 +25,7 @@ def display_gfc_map(aoi_model, model, m, alert):
     aoi_name = aoi_model.name
 
     # load the gfc map
-    gfc_map = ca.compute_ee_map(aoi_model, model.threshold)
+    gfc_map = ca.compute_ee_map(aoi_model, model)
 
     # load the aoi
     aoi = aoi_model.feature_collection
@@ -46,7 +46,7 @@ def display_gfc_map(aoi_model, model, m, alert):
                 m.remove_layer(layer)
 
     # add the values to the map
-    layer_name = f"gfc_{model.threshold}"
+    layer_name = f"gfc_{model.threshold}_{model.years[0]:.0f}_{model.years[1]:.0f}"
     if not m.find_layer(layer_name):
         m.addLayer(gfc_map.sldStyle(cp.sld_intervals), {}, layer_name)
         message = "Tiles loaded"
@@ -58,14 +58,18 @@ def display_gfc_map(aoi_model, model, m, alert):
     return
 
 
-def gfc_export(aoi_model, threshold, alert):
+def gfc_export(aoi_model, model, alert):
+
+    threshold = model.threshold
+    start = int(model.years[0])
+    end = int(model.years[1])
 
     # use aoi_name
     aoi_name = aoi_model.name
 
     # load the map
     aoi = aoi_model.feature_collection
-    gfc_map = ca.compute_ee_map(aoi_model, threshold)
+    gfc_map = ca.compute_ee_map(aoi_model, model)
 
     # generate the result folder
     result_dir = cp.result_dir / aoi_name
@@ -76,16 +80,17 @@ def gfc_export(aoi_model, threshold, alert):
     ############################
 
     # skip if output already exist
+    id_ = f"{threshold}_{start}_{end}"
     alert.add_live_msg("Creating the map")
-    clip_map = result_dir / f"{threshold}_merged_gfc_map.tif"
-    clip_legend = result_dir / f"{threshold}_gfc_legend.pdf"
+    clip_map = result_dir / f"{id_}_merged_gfc_map.tif"
+    clip_legend = result_dir / f"{id_}_gfc_legend.pdf"
 
     ca.export_legend(clip_legend)
 
     if clip_map.is_file():
         alert.add_live_msg("Gfc map threshold already performed", "success")
     else:
-        task_name = f"{aoi_name}_{threshold}_gfc_map"
+        task_name = f"{aoi_name}_{id_}_gfc_map"
 
         # launch the gee task
         drive_handler = gdrive()
@@ -113,7 +118,7 @@ def gfc_export(aoi_model, threshold, alert):
         drive_handler.download_files(files, result_dir)
 
         # merge the tiles together
-        tmp_clip_map = result_dir / f"{threshold}_tmp_merged_gfc_map.tif"
+        tmp_clip_map = result_dir / f"{id_}_tmp_merged_gfc_map.tif"
         file_pattern = f"{task_name}*.tif"
 
         src_files = [f for f in result_dir.glob(file_pattern)]
@@ -154,7 +159,7 @@ def gfc_export(aoi_model, threshold, alert):
     ###    create txt file   ###
     ############################
 
-    csv_file = result_dir / f"{threshold}_gfc_stat.csv"
+    csv_file = result_dir / f"{id_}_gfc_stat.csv"
     hist = ca.create_hist(result_dir, clip_map, alert)
 
     if csv_file.is_file():

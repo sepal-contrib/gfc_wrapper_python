@@ -16,6 +16,14 @@ class VizTile(sw.Tile):
         self.aoi_model = aoi_model
 
         # define widgets
+        w_years = v.RangeSlider(
+            label="Years",
+            class_="mt-5",
+            thumb_label="always",
+            min=2000 + cp.gfc_min_year,
+            max=2000 + cp.gfc_max_year,
+        )
+        w_years.v_model = [w_years.min, w_years.max]
         w_threshold = v.Slider(
             label="Threshold", class_="mt-5", thumb_label="always", v_model=30
         )
@@ -25,7 +33,7 @@ class VizTile(sw.Tile):
         alert = sw.Alert()
 
         # bind the widgets
-        self.model.bind(w_threshold, "threshold")
+        (self.model.bind(w_threshold, "threshold").bind(w_years, "years"))
 
         # create a map
         self.m = sm.SepalMap()
@@ -38,7 +46,11 @@ class VizTile(sw.Tile):
             row=True,
             xs12=True,
             children=[
-                v.Flex(md6=True, children=[w_threshold, btn, alert]),
+                v.Flex(
+                    class_="pr-5 pt-5",
+                    md6=True,
+                    children=[w_years, w_threshold, btn, alert],
+                ),
                 v.Flex(md6=True, children=[self.m]),
             ],
         )
