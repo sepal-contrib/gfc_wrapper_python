@@ -71,4 +71,8 @@ Considering the Aoi selected in step 1 and the threshold selected in step two th
 
 You can download these two files directly from the interface using the green buttons
 
+.. warning:: 
+
+    The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>` projection. The results may differs if you want to get them in a local projection.
+
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
