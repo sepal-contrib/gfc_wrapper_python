@@ -40,7 +40,7 @@ Using the provided AOI selector, select an AOI of your choice between the differ
     
 .. note::
 
-    If a custom aoi from shape or drawing is selected, you will be able to use it directly and the upload to GEE will be launched in the background. Check your `GEE code editor <https://code.earthengine.google.com>`_to use it elsewhere.
+    If a custom aoi from shape or drawing is selected, you will be able to use it directly and the upload to GEE will be launched in the background. Check your `GEE code editor <https://code.earthengine.google.com>`_ to use it elsewhere.
     
 GFC visualization
 ^^^^^^^^^^^^^^^^^
@@ -55,7 +55,7 @@ When changing the value of the threshold or the dates, a new layer will be added
 
 .. warning:: 
 
-    The parameters that will be used for the next step is the last asked value of threshold. If you want to come back to a previous value, move the slider back and click on `update map` again.  
+    The parameters that will be used for the next step is the last asked value of threshold. If you want to come back to a previous value, move the slider back and click on :code:`update map` again.  
   
 
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/viz.png
@@ -63,7 +63,7 @@ When changing the value of the threshold or the dates, a new layer will be added
 Export selected data 
 ^^^^^^^^^^^^^^^^^^^^
 
-Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a :code:`~/gfc_wrapper_results/<aoi_name>`` folder of your sepal environment.
+Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a :code:`~/gfc_wrapper_results/<aoi_name>` folder of your sepal environment.
 
 3 results will be produced:
 
@@ -75,7 +75,7 @@ You can download these 3 files directly from the interface using the green butto
 
 .. warning:: 
 
-    The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>` projection. The results may differs if you want to get them in a local projection.
+    The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>`_ projection. The results may differs if you want to get them in a local projection.
 
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
 
