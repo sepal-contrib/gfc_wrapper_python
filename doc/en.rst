@@ -61,13 +61,15 @@ When changing the value of the threshold or the dates, a new layer will be added
 Export selected data 
 ^^^^^^^^^^^^^^^^^^^^
 
-Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a `~/gfc_wrapper_results/<aoi_name>/` folder of your sepal environment. 
+Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a :code:`~/gfc_wrapper_results/<aoi_name>`` folder of your sepal environment.
 
-2 results will be produced: 
--   the map of the forest change mask using the color tab presented in the interactive maps
--   the distribution of each defined zone in a .csv file
+3 results will be produced:
 
-You can download these two files directly from the interface using the green buttons. These files are name after your parameters following this convention: :code:`<threshold>_<start_date>_<end_date>_<file>.<suffix>`
+-   The map of the forest change mask using the color tab presented in the interactive maps (:code:`..._gfc_map.tif``)
+-   The distribution of each defined zone (:code:`..._gfc_stat.csv`)
+-   The legend of the raster (:code:`..._gfc_legend.pd```
+
+You can download these 3 files directly from the interface using the green buttons. These files are name after your parameters following this convention: :code:`<threshold>_<start_date>_<end_date>_<file>.<suffix>`
 
 .. warning:: 
 

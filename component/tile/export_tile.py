@@ -20,7 +20,7 @@ class ExportTile(sw.Tile):
             "Export the data",
             btn=sw.Btn("Export data"),
             alert=sw.Alert(),
-            inputs=[sw.Markdown(cm.gfc.txt)],
+            inputs=[sw.Markdown("  \n".join(cm.gfc.txt))],
         )
 
         # add js behaviour
