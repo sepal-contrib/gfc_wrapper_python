@@ -27,6 +27,8 @@ For more information please refer to:
 Usage
 -----
 
+.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/gfc_app.gif 
+
 Select an AOI
 ^^^^^^^^^^^^^
 
@@ -76,3 +78,5 @@ You can download these 3 files directly from the interface using the green butto
     The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>` projection. The results may differs if you want to get them in a local projection.
 
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
+
+.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/results.png

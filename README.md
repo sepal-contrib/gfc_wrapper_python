@@ -12,7 +12,7 @@ This application allows the user to:
 - retrieve tree cover change data from the [Hansen et al., (2013)](https://science.sciencemag.org/content/342/6160/850) dataset
 - combine the layers to produce a forest change map, for a given canopy cover threshold and between selected years
 
-![example](./doc/img/full_viz.png)
+![example](./doc/img/gfc_app.gif)
 
 for more information about usage please read the [documentation](https://docs.sepal.io/en/latest/modules/dwn/gfc_wrapper_python.html)
 
