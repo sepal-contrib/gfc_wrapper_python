@@ -20,7 +20,7 @@ class ExportTile(sw.Tile):
             "Export the data",
             btn=sw.Btn("Export data"),
             alert=sw.Alert(),
-            inputs=[sw.Markdown(cm.gfc.txt)],
+            inputs=[sw.Markdown("  \n".join(cm.gfc.txt))],
         )
 
         # add js behaviour
@@ -39,7 +39,7 @@ class ExportTile(sw.Tile):
 
         # retreive the data
         self.clip_map, csv_file, result_layout = cs.gfc_export(
-            self.aoi_model, self.model.threshold, self.alert
+            self.aoi_model, self.model, self.alert
         )
 
         self.result_tile.set_content(result_layout)

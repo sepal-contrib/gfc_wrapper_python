@@ -7,9 +7,9 @@ This application allows the user to:
 - combine the layers to produce a forest change map, for a given canopy cover threshold
 - use a fragmentation tool (Vogt & Ritter, 2017) to measure the integrity of forests
 
-for more information about usage please read the [documentation](./doc/doc.md)
+for more information about usage please read the [documentation](https://docs.sepal.io/en/latest/modules/dwn/gfc_wrapper_python.html)
 
-### Background info on GFC
+### Background info on Global Forest Change (GFC)
 
 GFC provides global layers of information on tree cover and tree cover change since 2000, at 30m spatial resolution and consists of:
 

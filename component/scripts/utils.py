@@ -23,6 +23,14 @@ def pixel_count(raster):
     array = np.array(info.ravel())
     codes, frequency = np.unique(array, return_counts=True)
 
+    # add the missing codes
+    missing_codes = [i for i in cp.gfc_classes if i not in codes]
+    for i in missing_codes:
+        index = np.argmax(codes > i)
+        codes = np.insert(codes, index, i)
+        frequency = np.insert(frequency, index, 0)
+
+    # create the histogram
     columns = ["code", "pixels"]
     hist = pd.DataFrame(
         [[codes[i], frequency[i]] for i in range(len(codes))], columns=columns

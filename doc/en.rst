@@ -5,11 +5,11 @@ Base Forest mask and Fragmentation tool
 
 This application allows the user to:
 -   define an area of interest
--   retrieve tree cover change data from the Hansen et al., (2013) dataset
+-   retrieve tree cover change data from the `Hansen et al, (2013) <https://science.sciencemag.org/content/342/6160/850>`_ dataset
 -   combine the layers to produce a forest change map, for a given canopy cover threshold
 
-Background info on GFC
-----------------------
+Background info on Global Forest Change (GFC)
+---------------------------------------------
 
 GFC provides global layers of information on tree cover and tree cover change since 2000, at 30m spatial resolution and consists of:
 
@@ -19,15 +19,15 @@ GFC provides global layers of information on tree cover and tree cover change si
 
 For more information please refer to:
 
--   Hansen, M. C. et Al. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53.`<https://science.sciencemag.org/content/342/6160/850>`_
+-   `Hansen, M. C. et Al. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53. <https://science.sciencemag.org/content/342/6160/850>`_
 -   University of Maryland, GFC `dataset <http://earthenginepartners.appspot.com/science-2013-global-forest>`_
 
 .. figure:: https://earthengine.google.com/static/images/hansen.jpg
-
-    worldwide GFC
     
 Usage
 -----
+
+.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/gfc_app.gif 
 
 Select an AOI
 ^^^^^^^^^^^^^
@@ -40,39 +40,43 @@ Using the provided AOI selector, select an AOI of your choice between the differ
     
 .. note::
 
-    If a custom aoi from shape or drawing is selected, you will be able to use it directly and the upload to GEE will be launched in the background
+    If a custom aoi from shape or drawing is selected, you will be able to use it directly and the upload to GEE will be launched in the background. Check your `GEE code editor <https://code.earthengine.google.com>`_to use it elsewhere.
     
 GFC visualization
 ^^^^^^^^^^^^^^^^^
+Two parameters are available to select the data: 
 
-Use the slider to change the threshold to consider between forest and non-forest areas. Once you've selected a value, click on :code:`update map` to update the interactive map layers. 
+-   Use the slider to change the threshold to consider between forest and non-forest areas. Once you've selected a value, click on :code:`update map` to update the interactive map layers. 
+-   Use the Range slider to move the dates to consider in the analysis.
 
-The new layer is a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold. The legend is displayed in the map. You're allowed to zoom in-out as the data are processed in GEE. 
+The new layer is a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold. Only pixels that have a treecover above the threshold will be considered as forest. Every treecovered pixel prior to the start date will be considered as "non forest" and every changed that occurs after the end date will be considered as "stable forest". The legend is displayed in the map. You're allowed to zoom in-out, the data will be dynamically recomputed in GEE. 
 
-When changing the value of the threshold, a new layer will be added to the map so you can compare and select the more appropriate value of threshold for your analysis. 
+When changing the value of the threshold or the dates, a new layer will be added to the map so you can compare and select the more appropriate value of parameters for your analysis. 
 
 .. warning:: 
 
-    The value that will be used for the next step is the last asked value of threshold. If you want to come back to a previous value, move the slider back and click on `update map` again.  
+    The parameters that will be used for the next step is the last asked value of threshold. If you want to come back to a previous value, move the slider back and click on `update map` again.  
   
 
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/viz.png
 
-    vizualization
-
 Export selected data 
 ^^^^^^^^^^^^^^^^^^^^
 
-Considering the Aoi selected in step 1 and the threshold selected in step two the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold. It will live in a `~/gfc_wrapper_results` folder of your sepal environment. 
+Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a :code:`~/gfc_wrapper_results/<aoi_name>`` folder of your sepal environment.
 
-2 results will be produced: 
--   the map of the forest change mask using the color tab presented in the interactive maps
--   the distribution of each defined zone in a .csv file
+3 results will be produced:
 
-You can download these two files directly from the interface using the green buttons
+-   The map of the forest change mask using the color tab presented in the interactive maps (:code:`..._gfc_map.tif``)
+-   The distribution of each defined zone (:code:`..._gfc_stat.csv`)
+-   The legend of the raster (:code:`..._gfc_legend.pd```
+
+You can download these 3 files directly from the interface using the green buttons. These files are name after your parameters following this convention: :code:`<threshold>_<start_date>_<end_date>_<file>.<suffix>`
 
 .. warning:: 
 
     The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>` projection. The results may differs if you want to get them in a local projection.
 
 .. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
+
+.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/results.png
