@@ -194,10 +194,10 @@ def export_legend(filename):
 
     # create the table
     the_table = ax.table(
-        colColours=[to_rgba("lightgrey")]*len(columns),
+        colColours=[to_rgba("lightgrey")] * len(columns),
         cellText=cell_text,
         rowLabels=rows,
-        colWidths=[0.4]*len(columns),
+        colWidths=[0.4] * len(columns),
         rowColours=color_map,
         colLabels=columns,
         loc="center",
