@@ -176,12 +176,12 @@ def export_legend(filename):
 
     # create a color list
     color_map = []
-    for index in cp.gfc_colors:
-        color_map.append([val for val in list(cp.gfc_colors[index])])
+    for name in cp.gfc_colors:
+        color_map.append([col for col in list(cp.gfc_colors[name])])
 
-    columns = ["entry"]
+    columns = ["value", "entry"]
     rows = [" " * 10 for index in cp.gfc_colors]  # trick to see the first column
-    cell_text = [[index] for index in cp.gfc_colors]
+    cell_text = [[val, name] for val, name in zip(cp.gfc_classes, cp.gfc_colors)]
 
     fig, ax = plt.subplots(1, 1, figsize=[6.4, 8.6])
 
@@ -194,10 +194,10 @@ def export_legend(filename):
 
     # create the table
     the_table = ax.table(
-        colColours=[to_rgba("lightgrey")],
+        colColours=[to_rgba("lightgrey")]*len(columns),
         cellText=cell_text,
         rowLabels=rows,
-        colWidths=[0.4],
+        colWidths=[0.4]*len(columns),
         rowColours=color_map,
         colLabels=columns,
         loc="center",
