@@ -17,7 +17,7 @@
         "no_aoi": "No aoi have been provided, select one in step 1",
         "no_viz": "Before launching the export, it is strongly advised to vizualize data",
         "txt": [
-            "Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a `~/gfc_wrapper_results/<aoi_name>/` folder of your sepal environment.",
+            "Considering the Aoi selected in **step 1** and the parameters selected in **step 2**, the module will generate a combination of the GFC layers to produce a forest change map, for a given canopy cover threshold and between specific dates. It will live in a `~/module_results/gfc_wrapper/<aoi_name>/` folder of your sepal environment.",
             "",
             "3 results will be produced:",
             "",
