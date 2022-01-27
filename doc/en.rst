@@ -22,21 +22,22 @@ For more information please refer to:
 -   `Hansen, M. C. et Al. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53. <https://science.sciencemag.org/content/342/6160/850>`_
 -   University of Maryland, GFC `dataset <http://earthenginepartners.appspot.com/science-2013-global-forest>`_
 
-.. figure:: https://earthengine.google.com/static/images/hansen.jpg
-    
+.. thumbnail:: https://earthengine.google.com/static/images/hansen.jpg
+    :group: gfc_wrapper
 Usage
 -----
 
-.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/gfc_app.gif 
+.. thumbnail:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/gfc_app.gif 
+    :group: gfc_wrapper
 
 Select an AOI
 ^^^^^^^^^^^^^
 
 Using the provided AOI selector, select an AOI of your choice between the different methods available in the tool. We provide 3 administration descriptions (from level 0 to 2) and 3 custom shapes (drawn directly on the map, asset or shapefile). 
 
-.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/select_aoi.png 
-    
-    aoi selector 
+.. thumbnail:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/select_aoi.png 
+    :group: gfc_wrapper
+    :title: aoi selector 
     
 .. note::
 
@@ -58,7 +59,8 @@ When changing the value of the threshold or the dates, a new layer will be added
     The parameters that will be used for the next step is the last asked value of threshold. If you want to come back to a previous value, move the slider back and click on :code:`update map` again.  
   
 
-.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/viz.png
+.. thumbnail:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/viz.png
+    :group: gfc_wrapper
 
 Export selected data 
 ^^^^^^^^^^^^^^^^^^^^
@@ -77,6 +79,8 @@ You can download these 3 files directly from the interface using the green butto
 
     The statistic computations are run in the `World Mollweide (ESRI:54009) <https://epsg.io/54009>`_ projection. The results may differs if you want to get them in a local projection.
 
-.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
+.. thumbnail:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/export.png
+    :group: gfc_wrapper
 
-.. figure:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/results.png
+.. thumbnail:: https://raw.githubusercontent.com/openforis/gfc_wrapper_python/master/doc/img/results.png
+    :group: gfc_wrapper
