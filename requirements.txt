@@ -21,7 +21,7 @@ sepal_ui==2.5.5
 # custom libs
 ipyleaflet==0.13.3
 google-api-python-client<2,>=1.12.1
-ipywidgets==7.6.5 # cannot use newer version due to voila>3.1.0
+ipywidgets==7.6.5
 rasterio==1.1.5
 traitlets==5.1.0
 bqplot==0.12.31
