@@ -7,11 +7,11 @@ pre-commit
 
 # if you require GDAL and or pyproj in your module please uncomment these lines
 # there are set up to be inlined with SEPAL implementation of GDAL and PROJ version
-GDAL==3.0.4
+pygdal==3.4.0.10
 pyproj<3.0.0
 
 # uncomment if you want to run your module with GEE in SEPAL
-git+git://github.com/openforis/earthengine-api.git@v0.1.270#egg=earthengine-api&subdirectory=python
+git+https://github.com/openforis/earthengine-api.git@v0.1.270#egg=earthengine-api&subdirectory=python
 
 # the base lib to run any sepal_ui based app 
 # don't forget to fix it to a specific version when you're app is ready
@@ -19,12 +19,14 @@ sepal_ui==2.5.5
 
 
 # custom libs
+ipyleaflet==0.13.3
+google-api-python-client<2,>=1.12.1
+ipywidgets==7.6.5
 rasterio==1.1.5
 traitlets==5.1.0
 bqplot==0.12.31
 matplotlib==3.1.2
-numpy==1.17.4
+numpy==1.18
 pandas==1.3.3
 ipyvuetify==1.8.1
-google_api_python_client==2.25.0
 cryptography>=2.1.4
