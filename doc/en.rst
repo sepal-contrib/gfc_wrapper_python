@@ -24,6 +24,7 @@ For more information please refer to:
 
 .. thumbnail:: https://earthengine.google.com/static/images/hansen.jpg
     :group: gfc_wrapper
+
 Usage
 -----
 
