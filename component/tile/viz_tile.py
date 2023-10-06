@@ -10,7 +10,6 @@ from component import scripts as cs
 
 class VizTile(sw.Tile):
     def __init__(self, model, aoi_model):
-
         # gather model inputs
         self.model = model
         self.aoi_model = aoi_model
@@ -37,9 +36,11 @@ class VizTile(sw.Tile):
 
         # create a map
         self.m = sm.SepalMap()
-        self.m.add_legend(
-            legend_keys=cp.gfc_labels, legend_colors=cp.hex_palette, position="topleft"
-        )
+        self.m.layout.height = "80vh"
+
+        legend_dict = dict(zip(cp.gfc_labels, cp.hex_palette))
+
+        self.m.add_legend(legend_dict=legend_dict, position="topleft")
 
         # create a layout to display the map and the inputs side by side
         w_inputs = v.Layout(
@@ -48,10 +49,10 @@ class VizTile(sw.Tile):
             children=[
                 v.Flex(
                     class_="pr-5 pt-5",
-                    md6=True,
+                    md4=True,
                     children=[w_years, w_threshold, btn, alert],
                 ),
-                v.Flex(md6=True, children=[self.m]),
+                v.Flex(md8=True, children=[self.m]),
             ],
         )
 
@@ -66,7 +67,6 @@ class VizTile(sw.Tile):
 
     @su.loading_button(debug=True)
     def _on_click(self, widget, event, data):
-
         # set viz to false if asset has changed
         self.model.visualization = self.model.previous_asset_name == self.aoi_model.name
 

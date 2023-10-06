@@ -14,11 +14,12 @@ from .gdrive import gdrive
 from . import gee
 
 
+from sepal_ui.mapping import SepalMap
+
 ee.Initialize()
 
 
-def display_gfc_map(aoi_model, model, m, alert):
-
+def display_gfc_map(aoi_model, model, m: SepalMap, alert):
     alert.add_live_msg("Loading tiles")
 
     # use aoi_name
@@ -47,7 +48,7 @@ def display_gfc_map(aoi_model, model, m, alert):
 
     # add the values to the map
     layer_name = f"gfc_{model.threshold}_{model.years[0]:.0f}_{model.years[1]:.0f}"
-    if not m.find_layer(layer_name):
+    if not m.find_layer(layer_name, none_ok=True):
         m.addLayer(gfc_map.sldStyle(cp.sld_intervals), {}, layer_name)
         message = "Tiles loaded"
     else:
@@ -59,7 +60,6 @@ def display_gfc_map(aoi_model, model, m, alert):
 
 
 def gfc_export(aoi_model, model, alert):
-
     threshold = model.threshold
     start = int(model.years[0])
     end = int(model.years[1])
@@ -177,9 +177,11 @@ def gfc_export(aoi_model, model, alert):
     table = ca.area_table(hist)
 
     m = sm.SepalMap()
-    m.add_legend(
-        legend_keys=cp.gfc_labels, legend_colors=cp.hex_palette, position="topleft"
-    )
+    m.layout.height = "85vh"
+
+    legend_dict = dict(zip(cp.gfc_labels, cp.hex_palette))
+
+    m.add_legend(legend_dict=legend_dict, position="topleft")
     m.zoom_ee_object(aoi.geometry())
     m.addLayer(gfc_map.sldStyle(cp.sld_intervals), {}, "gfc")
     outline = ee.Image().byte().paint(featureCollection=aoi, color=1, width=3)
