@@ -7,7 +7,6 @@ from component import scripts as cs
 
 class ExportTile(sw.Tile):
     def __init__(self, model, aoi_model):
-
         # gather models
         self.model = model
         self.aoi_model = aoi_model
@@ -26,9 +25,8 @@ class ExportTile(sw.Tile):
         # add js behaviour
         self.btn.on_event("click", self._on_click)
 
-    @su.loading_button(debug=True)
+    @su.loading_button()
     def _on_click(self, widget, event, data):
-
         # check inputs
         if not self.alert.check_input(self.aoi_model.name, cm.gfc.no_aoi):
             return

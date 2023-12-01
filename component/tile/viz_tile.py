@@ -65,7 +65,7 @@ class VizTile(sw.Tile):
         # bind js events
         self.btn.on_event("click", self._on_click)
 
-    @su.loading_button(debug=True)
+    @su.loading_button()
     def _on_click(self, widget, event, data):
         # set viz to false if asset has changed
         self.model.visualization = self.model.previous_asset_name == self.aoi_model.name
