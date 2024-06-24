@@ -4,7 +4,6 @@ The nox run are build in isolated environment that will be stored in .nox. to fo
 """
 
 from pathlib import Path
-from pathlib import Path
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from jupyter_client.kernelspec import KernelSpecManager
