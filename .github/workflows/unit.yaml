@@ -25,7 +25,4 @@ jobs:
       - name: Install nox
         run: python -m pip install nox
       - name: set entry point and run tests
-        run: |
-          cp ui.ipynb test_ui.ipynb
-          entry_point --test test_ui.ipynb
-          nox -s test_ui
+        run: nox -s test_ui

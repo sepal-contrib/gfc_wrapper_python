@@ -45,9 +45,15 @@ def test_ui(session):
     print(kernel_names)
 
     # get the current path
-    root_folder = Path(__file__).parent.parent
+    root_folder = Path(__file__).parent
 
-    test_notebooks = [root_folder / "test_ui.ipynb"]
+    # Copy the ui.ipynb to test_ui.ipynb
+    session.run("cp", root_folder / "ui.ipynb", root_folder / "nox_ui.ipynb")
+
+    # set the kernel name to test-se.plan using entry_point command
+    session.run("entry_point", "--test", root_folder / "nox_ui.ipynb")
+
+    test_notebooks = [root_folder / "nox_ui.ipynb"]
 
     for notebook in test_notebooks:
         with open(notebook) as ff:
