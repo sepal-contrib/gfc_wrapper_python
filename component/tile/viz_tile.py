@@ -1,5 +1,6 @@
 from sepal_ui import sepalwidgets as sw
 from sepal_ui import mapping as sm
+from sepal_ui.mapping.inspector_control import InspectorControl
 from sepal_ui.scripts import utils as su
 import ipyvuetify as v
 
@@ -36,6 +37,7 @@ class VizTile(sw.Tile):
 
         # create a map
         self.m = sm.SepalMap()
+        self.m.add_control(InspectorControl(self.m))
         self.m.layout.height = "80vh"
 
         legend_dict = dict(zip(cp.gfc_labels, cp.hex_palette))

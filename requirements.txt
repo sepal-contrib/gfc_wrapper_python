@@ -10,5 +10,6 @@ bqplot
 matplotlib
 numpy
 pandas
-# pin until sepal releases a new version and latest ipyvuetify version is installed
-ipyvuetify==1.8.10
+
+
+# build with latest sepal_ui release
