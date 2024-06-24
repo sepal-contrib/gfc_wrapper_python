@@ -46,11 +46,11 @@ def test_ui(session):
 
     # get the current path
     root_folder = Path(__file__).parent
+    repo_name = root_folder.name
 
     # Copy the ui.ipynb to test_ui.ipynb
     session.run("cp", root_folder / "ui.ipynb", root_folder / "nox_ui.ipynb")
 
-    # set the kernel name to test-se.plan using entry_point command
     session.run("entry_point", "--test", root_folder / "nox_ui.ipynb")
 
     test_notebooks = [root_folder / "nox_ui.ipynb"]
@@ -62,7 +62,7 @@ def test_ui(session):
         print("Running notebook", notebook)
 
         try:
-            ep = ExecutePreprocessor(timeout=600, kernel_name="test-se.plan")
+            ep = ExecutePreprocessor(timeout=600, kernel_name=f"test-{repo_name}")
 
             nb_out = ep.preprocess(nb_in)
         except Exception as e:
