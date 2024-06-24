@@ -22,8 +22,6 @@ from component import parameter as cp
 
 from .utils import pixel_count, to_hectar
 
-ee.Initialize()
-
 
 def create_hist(result_dir, map_raster, alert):
 

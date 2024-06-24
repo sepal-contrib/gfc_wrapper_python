@@ -16,8 +16,6 @@ from . import gee
 
 from sepal_ui.mapping import SepalMap
 
-ee.Initialize()
-
 
 def display_gfc_map(aoi_model, model, m: SepalMap, alert):
     alert.add_live_msg("Loading tiles")

@@ -12,7 +12,6 @@ from google.oauth2.credentials import Credentials
 
 class gdrive(object):
     def __init__(self):
-        self.initialize = ee.Initialize()
         # Access to sepal access token
         self.access_token = json.loads(
             (Path.home() / ".config/earthengine/credentials").read_text()

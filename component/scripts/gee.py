@@ -3,8 +3,6 @@ import time
 
 from component.message import cm
 
-ee.Initialize()
-
 
 def wait_for_completion(task_descripsion, widget_alert):
     """Wait until the selected process is finished. Display some output information
