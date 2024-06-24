@@ -37,7 +37,7 @@ def app(session):
 
 
 @nox.session()
-def test_ui():
+def test_ui(session):
     """Run the application."""
 
     ksm = KernelSpecManager()
