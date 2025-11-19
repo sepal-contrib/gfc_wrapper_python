@@ -1,0 +1,17 @@
+name: gfc_wrapper_python
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - gdal=3.8.3
+  - earthengine-api<=1.5
+  - pyproj
+  - pip
+  - pip:
+    - sepal_ui==2.21.0
+    - rasterio<1.3.11
+    - voila
+    - bqplot
+    - matplotlib
+    - numpy
+    - pandas
