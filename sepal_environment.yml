@@ -6,6 +6,7 @@ dependencies:
   - python=3.10
   - pyproj  # Always include to avoid PROJ conflicts
   - rasterio
+  - gdal=3.8.3
   - bqplot
   - matplotlib
   - numpy
